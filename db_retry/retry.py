@@ -33,7 +33,7 @@ def postgres_retry[**P, T](
         wait=tenacity.wait_exponential_jitter(),
         retry=tenacity.retry_if_exception(_retry_handler),
         reraise=True,
-        before=tenacity.before_log(logger, logging.DEBUG),
+        before=tenacity.before_log(logger, logging.DEBUG),  # ty: ignore[invalid-argument-type]
     )
     @functools.wraps(func)
     async def wrapped_method(*args: P.args, **kwargs: P.kwargs) -> T:

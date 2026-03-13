@@ -20,7 +20,7 @@ The library is built with modern Python practices (3.13+) and uses type hints ex
 - **uv** for package management and building
 - **Docker** for development and testing environments
 - **pytest** for testing
-- **ruff** and **mypy** for linting and type checking
+- **ruff** and **ty** for linting and type checking
 
 ## Project Structure
 
@@ -112,7 +112,7 @@ The library can be configured using environment variables:
 
 ## Development Conventions
 
-1. **Type Safety**: Strict mypy checking is enforced
+1. **Type Safety**: Strict ty checking is enforced
 2. **Code Style**: Ruff is used for linting with specific rules configured
 3. **Testing**: All functionality should have corresponding tests
 4. **Async/Await**: All database operations are asynchronous
