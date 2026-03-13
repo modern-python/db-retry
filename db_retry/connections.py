@@ -20,7 +20,7 @@ def build_connection_factory(
     url: sqlalchemy.URL,
     timeout: float,
 ) -> typing.Callable[[], typing.Awaitable["ConnectionType"]]:
-    connect_args: typing.Final[dict[str, typing.Any]] = PGDialect_asyncpg().create_connect_args(url)[1]  # type: ignore[no-untyped-call]
+    connect_args: typing.Final[dict[str, typing.Any]] = PGDialect_asyncpg().create_connect_args(url)[1]
     raw_target_session_attrs: typing.Final[str | None] = connect_args.pop("target_session_attrs", None)
     target_session_attrs: typing.Final[SessionAttribute | None] = (
         SessionAttribute(raw_target_session_attrs) if raw_target_session_attrs else None

@@ -36,7 +36,7 @@ dev = [
 ]
 lint = [
     "ruff",
-    "mypy",
+    "ty",
     "eof-fixer",
     "asyncpg-stubs",
 ]
@@ -48,10 +48,6 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 module-name = "db_retry"
 module-root = ""
-
-[tool.mypy]
-python_version = "3.13"
-strict = true
 
 [tool.ruff]
 fix = false

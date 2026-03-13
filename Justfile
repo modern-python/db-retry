@@ -20,13 +20,13 @@ lint:
     uv run eof-fixer .
     uv run ruff format
     uv run ruff check --fix
-    uv run mypy .
+    uv run ty check
 
 lint-ci:
     uv run eof-fixer . --check
     uv run ruff format --check
     uv run ruff check --no-fix
-    uv run mypy .
+    uv run ty check
 
 publish:
     rm -rf dist
