@@ -1,5 +1,5 @@
 import os
-import typing
 
 
-DB_RETRY_RETRIES_NUMBER: typing.Final = int(os.getenv("DB_RETRY_RETRIES_NUMBER", "3"))
+def get_retries_number() -> int:
+    return int(os.getenv("DB_RETRY_RETRIES_NUMBER", "3"))

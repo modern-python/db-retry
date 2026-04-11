@@ -45,7 +45,7 @@ class User(DeclarativeBase):
     email: Mapped[str] = mapped_column(sa.String(), index=True)
 
 
-# Apply retry logic to ORM operations
+# Apply retry logic to ORM operations (uses DB_RETRY_RETRIES_NUMBER, default 3)
 @postgres_retry
 async def get_user_by_email(session: AsyncSession, email: str) -> User:
     return await session.scalar(
@@ -63,6 +63,14 @@ async def main():
 
 
 asyncio.run(main())
+```
+
+Per-callsite retry count override:
+
+```python
+@postgres_retry(retries=5)
+async def create_order(session: AsyncSession, order: Order) -> Order:
+    ...
 ```
 
 ### 2. High Availability Database Connections
@@ -173,13 +181,14 @@ The library can be configured using environment variables:
 
 Example:
 ```bash
-export DB_UTILS_RETRIES_NUMBER=5
+export DB_RETRY_RETRIES_NUMBER=5
 ```
 
 ## API Reference
 
 ### Retry Decorator
-- `@postgres_retry` - Decorator for async functions that should retry on database errors
+- `@postgres_retry` - Decorator for async functions that should retry on database errors (uses `DB_RETRY_RETRIES_NUMBER`)
+- `@postgres_retry(retries=N)` - Override retry count per callsite
 
 ### Connection Utilities
 - `build_connection_factory(url, timeout)` - Creates a connection factory for multi-host setups
@@ -187,7 +196,7 @@ export DB_UTILS_RETRIES_NUMBER=5
 - `is_dsn_multihost(db_dsn)` - Checks if a DSN contains multiple hosts
 
 ### Transaction Helper
-- `Transaction(session, isolation_level=None)` - Context manager for simplified transaction handling
+- `Transaction(session, isolation_level=None)` - Context manager for transaction handling; auto-rolls back on exit if no explicit `.commit()` or `.rollback()` was called
 
 ## Requirements
 

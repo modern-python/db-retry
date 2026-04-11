@@ -16,7 +16,8 @@ def _retry_handler(exception: BaseException) -> bool:
     if (
         isinstance(exception, DBAPIError)
         and hasattr(exception, "orig")
-        and isinstance(exception.orig.__cause__, (asyncpg.SerializationError, asyncpg.PostgresConnectionError))  # type: ignore[union-attr]
+        and exception.orig is not None
+        and isinstance(exception.orig.__cause__, (asyncpg.SerializationError, asyncpg.PostgresConnectionError))
     ):
         logger.debug("postgres_retry, retrying")
         return True
@@ -25,18 +26,37 @@ def _retry_handler(exception: BaseException) -> bool:
     return False
 
 
-def postgres_retry[**P, T](
-    func: typing.Callable[P, typing.Coroutine[None, None, T]],
-) -> typing.Callable[P, typing.Coroutine[None, None, T]]:
-    @tenacity.retry(
-        stop=tenacity.stop_after_attempt(settings.DB_RETRY_RETRIES_NUMBER),
-        wait=tenacity.wait_exponential_jitter(),
-        retry=tenacity.retry_if_exception(_retry_handler),
-        reraise=True,
-        before=tenacity.before_log(logger, logging.DEBUG),  # ty: ignore[invalid-argument-type]
-    )
-    @functools.wraps(func)
-    async def wrapped_method(*args: P.args, **kwargs: P.kwargs) -> T:
-        return await func(*args, **kwargs)
+type _Func[**P, T] = typing.Callable[P, typing.Coroutine[None, None, T]]
+type _Decorator[**P, T] = typing.Callable[[_Func[P, T]], _Func[P, T]]
 
-    return wrapped_method
+
+@typing.overload
+def postgres_retry[**P, T](func: _Func[P, T], *, retries: int | None = ...) -> _Func[P, T]: ...
+
+
+@typing.overload
+def postgres_retry[**P, T](func: None = ..., *, retries: int | None = ...) -> _Decorator[P, T]: ...
+
+
+def postgres_retry[**P, T](
+    func: _Func[P, T] | None = None,
+    *,
+    retries: int | None = None,
+) -> _Func[P, T] | _Decorator[P, T]:
+    def decorator(f: _Func[P, T]) -> _Func[P, T]:
+        @functools.wraps(f)
+        async def wrapped_method(*args: P.args, **kwargs: P.kwargs) -> T:
+            retryer = tenacity.AsyncRetrying(
+                stop=tenacity.stop_after_attempt(retries if retries is not None else settings.get_retries_number()),
+                wait=tenacity.wait_exponential_jitter(),
+                retry=tenacity.retry_if_exception(_retry_handler),
+                reraise=True,
+                before=tenacity.before_log(logger, logging.DEBUG),
+            )
+            return await retryer(f, *args, **kwargs)
+
+        return wrapped_method
+
+    if func is not None:
+        return decorator(func)
+    return decorator

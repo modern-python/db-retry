@@ -1,6 +1,6 @@
 import dataclasses
+import typing
 
-import typing_extensions
 from sqlalchemy.engine.interfaces import IsolationLevel
 from sqlalchemy.ext import asyncio as sa_async
 
@@ -10,7 +10,7 @@ class Transaction:
     session: sa_async.AsyncSession
     isolation_level: IsolationLevel | None = None
 
-    async def __aenter__(self) -> typing_extensions.Self:
+    async def __aenter__(self) -> typing.Self:
         if self.isolation_level:
             await self.session.connection(execution_options={"isolation_level": self.isolation_level})
 
@@ -18,7 +18,9 @@ class Transaction:
             await self.session.begin()
         return self
 
-    async def __aexit__(self, *args: object, **kwargs: object) -> None:
+    async def __aexit__(self, exc_type: object, *args: object, **kwargs: object) -> None:
+        if self.session.in_transaction():
+            await self.session.rollback()
         await self.session.close()
 
     async def commit(self) -> None:
