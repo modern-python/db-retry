@@ -2,7 +2,7 @@
 name = "db-retry"
 description = "PostgreSQL and SQLAlchemy Tools"
 authors = [
-    { name = "community-of-python" },
+    { name = "Artur Shiriev", email = "me@shiriev.ru" },
 ]
 readme = "README.md"
 requires-python = ">=3.13,<4"
@@ -18,7 +18,7 @@ classifiers = [
     "Typing :: Typed",
     "Topic :: Software Development :: Libraries",
 ]
-version = "0"
+version = "0.0.0"
 dependencies = [
     "tenacity",
     "sqlalchemy[asyncio]",
@@ -26,7 +26,7 @@ dependencies = [
 ]
 
 [project.urls]
-repository = "https://github.com/modern-python/sa-utils"
+repository = "https://github.com/modern-python/db-retry"
 
 [dependency-groups]
 dev = [

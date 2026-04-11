@@ -55,15 +55,11 @@ async def test_connection_factory_failure_several_hosts(
 
 
 async def test_connection_factory_failure_and_success(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("asyncpg.connect", mock.AsyncMock(side_effect=(TimeoutError, "")))
+    mock_connection: typing.Final = mock.AsyncMock(spec=asyncpg.Connection)
+    monkeypatch.setattr("asyncpg.connect", mock.AsyncMock(side_effect=(TimeoutError, mock_connection)))
     url: typing.Final = sqlalchemy.make_url(
         "postgresql+asyncpg://user:password@/database?host=host1:5432&host=host2:5432"
     )
-    engine: typing.Final = sa_async.create_async_engine(
-        url=url, echo=True, echo_pool=True, async_creator=build_connection_factory(url=url, timeout=1.0)
-    )
-    try:
-        with pytest.raises(AttributeError):
-            await engine.connect().__aenter__()
-    finally:
-        await engine.dispose()
+    factory: typing.Final = build_connection_factory(url=url, timeout=1.0)
+    result = await factory()
+    assert result is mock_connection

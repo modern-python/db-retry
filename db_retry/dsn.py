@@ -21,10 +21,7 @@ def build_db_dsn(
     return parsed_db_dsn.set(
         database=database_name,
         drivername=drivername,
-        query=db_dsn_query
-        | {
-            "target_session_attrs": "prefer-standby" if use_replica else "read-write",
-        },
+        query={"target_session_attrs": "prefer-standby" if use_replica else "read-write"} | db_dsn_query,
     )
 
 
