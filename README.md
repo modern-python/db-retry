@@ -205,6 +205,12 @@ export DB_RETRY_RETRIES_NUMBER=5
 - asyncpg PostgreSQL driver
 - tenacity for retry logic
 
+## Part of `modern-python`
+
+Browse the full list of templates and libraries in
+[`modern-python`](https://github.com/modern-python) — see the org profile for the
+categorized index.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

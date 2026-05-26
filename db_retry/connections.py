@@ -32,7 +32,7 @@ def build_connection_factory(
     hosts: str | list[str]
     ports: int | list[int] | None
     if isinstance(raw_hosts, list) and isinstance(raw_ports, list):
-        hosts_and_ports = typing.cast("list[tuple[str, int]]", list(zip(raw_hosts, raw_ports, strict=True)))
+        hosts_and_ports = list(zip(raw_hosts, raw_ports, strict=True))
         random.shuffle(hosts_and_ports)
         hosts = list(map(itemgetter(0), hosts_and_ports))
         ports = list(map(itemgetter(1), hosts_and_ports))
