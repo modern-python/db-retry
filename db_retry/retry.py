@@ -12,15 +12,23 @@ from db_retry import settings
 logger = logging.getLogger(__name__)
 
 
-def _retry_handler(exception: BaseException) -> bool:
-    if (
+def _is_retriable_dbapi_error(exception: BaseException) -> bool:
+    return (
         isinstance(exception, DBAPIError)
-        and hasattr(exception, "orig")
         and exception.orig is not None
         and isinstance(exception.orig.__cause__, (asyncpg.SerializationError, asyncpg.PostgresConnectionError))
-    ):
-        logger.debug("postgres_retry, retrying")
-        return True
+    )
+
+
+def _retry_handler(exception: BaseException) -> bool:
+    current: BaseException | None = exception
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if _is_retriable_dbapi_error(current):
+            logger.debug("postgres_retry, retrying")
+            return True
+        current = current.__cause__ or current.__context__
 
     logger.debug("postgres_retry, giving up on retry")
     return False

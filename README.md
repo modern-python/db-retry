@@ -189,6 +189,7 @@ export DB_RETRY_RETRIES_NUMBER=5
 ### Retry Decorator
 - `@postgres_retry` - Decorator for async functions that should retry on database errors (uses `DB_RETRY_RETRIES_NUMBER`)
 - `@postgres_retry(retries=N)` - Override retry count per callsite
+- Retries also fire when the retriable `asyncpg` error is wrapped by [`advanced-alchemy`](https://github.com/litestar-org/advanced-alchemy)'s `wrap_sqlalchemy_exception()` (i.e. surfaced as `RepositoryError` / `IntegrityError`); the handler walks the `__cause__` / `__context__` chain.
 
 ### Connection Utilities
 - `build_connection_factory(url, timeout)` - Creates a connection factory for multi-host setups
