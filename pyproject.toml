@@ -33,6 +33,7 @@ dev = [
     "pytest",
     "pytest-cov",
     "pytest-asyncio",
+    "advanced-alchemy",
 ]
 lint = [
     "ruff",

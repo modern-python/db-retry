@@ -25,7 +25,7 @@ The CI `DB_DSN` format: `postgresql+asyncpg://postgres:postgres@localhost:5432/p
 
 The package (`db_retry/`) exposes five public symbols via `__init__.py`:
 
-- **`postgres_retry`** (`retry.py`) — async tenacity decorator that retries on `asyncpg.SerializationError` (40001) and `asyncpg.PostgresConnectionError` (08000/08003). Walks the exception chain via `DBAPIError.orig.__cause__` to distinguish retriable errors from others like `StatementCompletionUnknownError` (40002). Supports bare `@postgres_retry` (uses default) and `@postgres_retry(retries=N)` for per-callsite override.
+- **`postgres_retry`** (`retry.py`) — async tenacity decorator that retries on `asyncpg.SerializationError` (40001) and `asyncpg.PostgresConnectionError` (08000/08003). Walks the outer `__cause__`/`__context__` chain to find any `DBAPIError`, then inspects `DBAPIError.orig.__cause__` to distinguish retriable errors from others like `StatementCompletionUnknownError` (40002). The chain walk lets retries fire when the `DBAPIError` is re-raised by a wrapper (e.g. advanced-alchemy's `wrap_sqlalchemy_exception()` surfacing it as `RepositoryError`/`IntegrityError`). Supports bare `@postgres_retry` (uses default) and `@postgres_retry(retries=N)` for per-callsite override.
 
 - **`build_connection_factory`** (`connections.py`) — returns an async callable suitable for SQLAlchemy's `async_engine_from_config`. Handles multi-host DSNs by randomizing host order (load balancing) and attempting all hosts on timeout before raising `TargetServerAttributeNotMatched`.
 

@@ -1,5 +1,6 @@
 import pytest
 import sqlalchemy
+from advanced_alchemy.exceptions import RepositoryError, wrap_sqlalchemy_exception
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext import asyncio as sa_async
 
@@ -39,6 +40,49 @@ async def test_postgres_retry(async_engine: sa_async.AsyncEngine, error_code: st
             await connection.execute(sqlalchemy.text("SELECT raise_error()"))
 
         with pytest.raises(DBAPIError):
+            await raise_error()
+
+        assert call_count == expected_calls
+
+
+@pytest.mark.parametrize(
+    ("error_code", "expected_calls"),
+    [
+        ("08000", 2),
+        ("08003", 2),
+        ("40001", 2),
+        ("40002", 1),
+    ],
+)
+async def test_postgres_retry_advanced_alchemy(
+    async_engine: sa_async.AsyncEngine,
+    error_code: str,
+    expected_calls: int,
+) -> None:
+    async with async_engine.connect() as connection:
+        await connection.execute(
+            sqlalchemy.text(
+                f"""
+        CREATE OR REPLACE FUNCTION raise_error()
+        RETURNS VOID AS $$
+        BEGIN
+            RAISE SQLSTATE '{error_code}';
+        END;
+        $$ LANGUAGE plpgsql;
+        """,
+            ),
+        )
+
+        call_count = 0
+
+        @postgres_retry
+        async def raise_error() -> None:
+            nonlocal call_count
+            call_count += 1
+            with wrap_sqlalchemy_exception():
+                await connection.execute(sqlalchemy.text("SELECT raise_error()"))
+
+        with pytest.raises(RepositoryError):
             await raise_error()
 
         assert call_count == expected_calls
