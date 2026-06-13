@@ -1,5 +1,17 @@
 # db-retry
 
+[![PyPI version](https://img.shields.io/pypi/v/db-retry.svg)](https://pypi.org/project/db-retry/)
+[![Supported Python versions](https://img.shields.io/pypi/pyversions/db-retry.svg)](https://pypi.org/project/db-retry/)
+[![Downloads](https://img.shields.io/pypi/dm/db-retry.svg)](https://pypistats.org/packages/db-retry)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://github.com/modern-python/db-retry/actions/workflows/ci.yml)
+[![CI](https://github.com/modern-python/db-retry/actions/workflows/ci.yml/badge.svg)](https://github.com/modern-python/db-retry/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/modern-python/db-retry.svg)](https://github.com/modern-python/db-retry/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/modern-python/db-retry)](https://github.com/modern-python/db-retry/stargazers)
+[![Context7](https://img.shields.io/badge/Context7-docs-blue)](https://context7.com/modern-python/db-retry)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)](https://github.com/astral-sh/ty)
+
 A Python library providing robust retry mechanisms, connection utilities, and transaction helpers for PostgreSQL and SQLAlchemy applications.
 
 ## Features
@@ -206,12 +218,11 @@ export DB_RETRY_RETRIES_NUMBER=5
 - asyncpg PostgreSQL driver
 - tenacity for retry logic
 
+## 📦 [PyPI](https://pypi.org/project/db-retry)
+
+## 📝 [License](LICENSE)
+
 ## Part of `modern-python`
 
 Browse the full list of templates and libraries in
-[`modern-python`](https://github.com/modern-python) — see the org profile for the
-categorized index.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+[`modern-python`](https://github.com/modern-python) — see the org profile for the categorized index.
