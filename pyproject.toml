@@ -1,18 +1,16 @@
 [project]
 name = "db-retry"
-description = "PostgreSQL and SQLAlchemy Tools"
+description = "Retry helpers for PostgreSQL / SQLAlchemy database operations"
 authors = [
     { name = "Artur Shiriev", email = "me@shiriev.ru" },
 ]
 readme = "README.md"
 requires-python = ">=3.13,<4"
 license = "MIT"
-keywords = [
-    "python",
-    "postgresql",
-    "sqlalchemy",
-]
+keywords = ["postgresql", "sqlalchemy", "retry", "database", "asyncio", "python"]
 classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
@@ -26,7 +24,10 @@ dependencies = [
 ]
 
 [project.urls]
-repository = "https://github.com/modern-python/db-retry"
+Homepage = "https://modern-python.org"
+Repository = "https://github.com/modern-python/db-retry"
+Issues = "https://github.com/modern-python/db-retry/issues"
+Changelog = "https://github.com/modern-python/db-retry/releases"
 
 [dependency-groups]
 dev = [
