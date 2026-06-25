@@ -4,20 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-```bash
-just install       # uv lock --upgrade && uv sync
-just lint          # ruff format + eof-fixer (auto-fix)
-just lint-ci       # ruff check only (no fixes)
-just build         # build docker image
-just test          # run pytest inside docker (requires postgres)
-just               # install lint build test (full pipeline)
-```
+Recipes live in the `Justfile` (`just --list`); the bare `just` runs the full
+`install lint build test` pipeline. Non-obvious notes:
 
-To run tests locally without Docker, set `DB_DSN` and run:
-```bash
-uv run pytest
-uv run pytest tests/test_retry.py::test_postgres_retry  # single test
-```
+- `just test` runs pytest inside Docker (needs the compose postgres). To run
+  locally without Docker, set `DB_DSN` and use `uv run pytest` directly
+  (e.g. `uv run pytest tests/test_retry.py::test_postgres_retry` for one test).
+- `just lint` auto-fixes (eof-fixer, ruff format, ruff check --fix, ty check);
+  `just lint-ci` is the same checks in no-fix/`--check` mode (CI gate).
 
 The CI `DB_DSN` format: `postgresql+asyncpg://postgres:postgres@localhost:5432/postgres`
 
@@ -37,6 +31,6 @@ The package (`db_retry/`) exposes five public symbols via `__init__.py`:
 
 ## Linting / Type Checking
 
-Ruff is configured with `select = ["ALL"]` plus specific exclusions. Line length is 120. Run `just lint` before committing.
-
-Type checking uses `ty` (not mypy). In code, use `ty: ignore` for suppression comments (not `type: ignore`).
+Ruff is configured with `select = ["ALL"]` plus specific exclusions; line length
+is 120. Type checking uses `ty` (not mypy) — in code, use `ty: ignore` for
+suppression comments (not `type: ignore`).
