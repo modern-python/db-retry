@@ -19,6 +19,13 @@ These files carry **no frontmatter** — they are prose, dated by git.
 - [transaction.md](transaction.md) — `Transaction`, the session context manager.
 - [settings.md](settings.md) — `get_retries_number`, the env-driven retry count.
 
+## Glossary
+
+[`glossary.md`](glossary.md) holds the project's ubiquitous language — the domain
+terms code, specs, and these capability files share. Living prose, no
+frontmatter, authored lazily: it appears when the first term is worth pinning
+down.
+
 ## Promotion rule
 
 Shipping a change hand-edits the affected capability file(s) here to match the
