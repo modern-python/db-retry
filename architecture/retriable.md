@@ -10,7 +10,7 @@ def is_retriable(exception: BaseException) -> bool: ...
 ```
 
 Returns `True` if `exception` or any exception in its `__cause__`/`__context__`
-chain is a `sqlalchemy.exc.DBAPIError` whose `.orig.__cause__` is one of the
+chain is a `sqlalchemy.exc.DBAPIError` whose `.orig` is set and whose `.orig.__cause__` is one of the
 [retriable asyncpg errors](glossary.md).
 
 The predicate is **pure**: no logging, no side effects. `postgres_retry` wraps it

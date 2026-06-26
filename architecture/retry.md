@@ -25,7 +25,7 @@ is read per invocation, not frozen at decoration.
 
 Each call builds a `tenacity.AsyncRetrying` with:
 
-- `stop=stop_after_attempt(retries or get_retries_number())`
+- `stop=stop_after_attempt(retries if retries is not None else get_retries_number())`
 - `wait=wait_exponential_jitter()` — exponential backoff with jitter
 - `retry=retry_if_exception(_log_and_decide)` — delegates to
   [`is_retriable`](retriable.md); `_log_and_decide` adds the two debug log lines
