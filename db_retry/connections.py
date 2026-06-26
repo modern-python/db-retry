@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 import random
 import typing
@@ -14,6 +15,45 @@ if typing.TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+@dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
+class ConnectionPlan:
+    connect_args: typing.Mapping[str, typing.Any]
+    target_session_attrs: SessionAttribute | None
+    primary_host: str | list[str]
+    primary_port: int | list[int] | None
+    failover: tuple[tuple[str, int], ...]
+
+
+def build_connection_plan(url: sqlalchemy.URL) -> ConnectionPlan:
+    connect_args: dict[str, typing.Any] = PGDialect_asyncpg().create_connect_args(url)[1]
+    raw_target_session_attrs: str | None = connect_args.pop("target_session_attrs", None)
+    target_session_attrs: SessionAttribute | None = (
+        SessionAttribute(raw_target_session_attrs) if raw_target_session_attrs else None
+    )
+    raw_hosts: str | list[str] = connect_args.pop("host")
+    raw_ports: int | list[int] | None = connect_args.pop("port", None)
+    primary_host: str | list[str]
+    primary_port: int | list[int] | None
+    failover: tuple[tuple[str, int], ...]
+    if isinstance(raw_hosts, list) and isinstance(raw_ports, list):
+        hosts_and_ports: list[tuple[str, int]] = list(zip(raw_hosts, raw_ports, strict=True))
+        random.shuffle(hosts_and_ports)
+        primary_host = list(map(itemgetter(0), hosts_and_ports))
+        primary_port = list(map(itemgetter(1), hosts_and_ports))
+        failover = tuple(hosts_and_ports)
+    else:
+        primary_host = raw_hosts
+        primary_port = raw_ports
+        failover = ()
+    return ConnectionPlan(
+        connect_args=connect_args,
+        target_session_attrs=target_session_attrs,
+        primary_host=primary_host,
+        primary_port=primary_port,
+        failover=failover,
+    )
 
 
 def build_connection_factory(
