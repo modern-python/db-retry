@@ -57,8 +57,9 @@ site):
    given `timeout`. On success, returns immediately.
 2. On `TimeoutError`, if `plan.failover` is empty (single-host), re-raises. With a
    failover list, logs a warning and falls through.
-3. Calls `_reshuffled(plan.failover)` — a **per-call** shuffle of a copy of the
-   failover pairs — and tries each `(host, port)` individually, swallowing
+3. Calls `_reshuffled(plan.failover)` — `random.sample(...)` returns a
+   **per-call** freshly-shuffled list, leaving the plan's `failover` tuple
+   untouched — and tries each `(host, port)` individually, swallowing
    `TimeoutError`, `OSError`, and `asyncpg.TargetServerAttributeNotMatched`
    (logging a warning per failed host) and returning the first that connects.
 4. If every host fails, raises `asyncpg.TargetServerAttributeNotMatched` naming
