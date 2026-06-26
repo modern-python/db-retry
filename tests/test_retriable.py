@@ -8,7 +8,9 @@ from db_retry.retriable import RETRIABLE_ASYNCPG_ERRORS, is_retriable
 def _make_dbapi_error(cause: BaseException) -> DBAPIError:
     orig = Exception("db error")
     orig.__cause__ = cause
-    return DBAPIError("SELECT 1", None, orig)
+    err = DBAPIError("SELECT 1", None, orig)
+    assert err.orig is not None  # the predicate hinges on .orig being set; make the invariant explicit
+    return err
 
 
 def test_retriable_asyncpg_errors_contains_expected_classes() -> None:
@@ -55,3 +57,13 @@ def test_is_retriable_cause_cycle_terminates() -> None:
     a.__cause__ = b
     b.__cause__ = a
     assert is_retriable(a) is False
+
+
+def test_is_retriable_cycle_containing_retriable_link() -> None:
+    # A cyclic chain that *contains* a retriable DBAPIError still returns True:
+    # the walk finds the retriable link before the cycle guard would re-visit a node.
+    outer = ValueError("outer")
+    dbapi_err = _make_dbapi_error(asyncpg.SerializationError())
+    outer.__cause__ = dbapi_err
+    dbapi_err.__cause__ = outer
+    assert is_retriable(outer) is True
