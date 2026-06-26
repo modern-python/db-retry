@@ -15,19 +15,40 @@ Recipes live in the `Justfile` (`just --list`); the bare `just` runs the full
 
 The CI `DB_DSN` format: `postgresql+asyncpg://postgres:postgres@localhost:5432/postgres`
 
+## Workflow
+
+Planning follows [`planning/README.md`](planning/README.md) — its **Quick path**
+is the authoritative convention for making a change (choose a lane, create a
+bundle under `planning/changes/`, ship the `architecture/` promotion in the same
+PR). Run `just check-planning` (also wired into `just lint-ci`) before pushing.
+
 ## Architecture
 
-The package (`db_retry/`) exposes five public symbols via `__init__.py`:
+> Quick orientation only. The authoritative, code-current account of each
+> capability lives in [`architecture/`](architecture/) — one file per
+> capability. **When a change alters a capability's behavior, update the matching
+> `architecture/<capability>.md` in the same PR** — that promotion is what keeps
+> `architecture/` true; code that changes without it silently rots the truth home.
 
-- **`postgres_retry`** (`retry.py`) — async tenacity decorator that retries on `asyncpg.SerializationError` (40001) and `asyncpg.PostgresConnectionError` (08000/08003). Walks the outer `__cause__`/`__context__` chain to find any `DBAPIError`, then inspects `DBAPIError.orig.__cause__` to distinguish retriable errors from others like `StatementCompletionUnknownError` (40002). The chain walk lets retries fire when the `DBAPIError` is re-raised by a wrapper (e.g. advanced-alchemy's `wrap_sqlalchemy_exception()` surfacing it as `RepositoryError`/`IntegrityError`). Supports bare `@postgres_retry` (uses default) and `@postgres_retry(retries=N)` for per-callsite override.
+The package (`db_retry/`) exposes five public symbols via `__init__.py`. Read
+the matching capability file before changing behavior:
 
-- **`build_connection_factory`** (`connections.py`) — returns an async callable suitable for SQLAlchemy's `async_engine_from_config`. Handles multi-host DSNs by randomizing host order (load balancing) and attempting all hosts on timeout before raising `TargetServerAttributeNotMatched`.
+| Symbol(s) | Source | Capability file |
+|---|---|---|
+| `postgres_retry` | `retry.py` | [architecture/retry.md](architecture/retry.md) |
+| `build_connection_factory` | `connections.py` | [architecture/connections.md](architecture/connections.md) |
+| `build_db_dsn`, `is_dsn_multihost` | `dsn.py` | [architecture/dsn.md](architecture/dsn.md) |
+| `Transaction` | `transaction.py` | [architecture/transaction.md](architecture/transaction.md) |
+| `get_retries_number` | `settings.py` | [architecture/settings.md](architecture/settings.md) |
 
-- **`build_db_dsn`** / **`is_dsn_multihost`** (`dsn.py`) — parse and construct `sqlalchemy.URL` objects. Multi-host DSNs encode additional hosts in query parameters. Existing `target_session_attrs` in the DSN is preserved (not overwritten).
-
-- **`Transaction`** (`transaction.py`) — frozen dataclass context manager wrapping `AsyncSession`. Supports optional isolation level (e.g., `"SERIALIZABLE"`). Auto-rolls back on `__aexit__` if the session is still in a transaction (i.e. no explicit `.commit()` or `.rollback()` was called). Uses `typing.Self` (no `typing_extensions` dependency).
-
-- **`settings.py`** — exposes `get_retries_number()` which reads `DB_RETRY_RETRIES_NUMBER` env var at call time (default: 3), allowing `monkeypatch.setenv` to work in tests.
+- **`postgres_retry`** is an async tenacity decorator that retries on
+  `asyncpg.SerializationError` (40001) and `asyncpg.PostgresConnectionError`
+  (08xxx), walking the `__cause__`/`__context__` chain to find a retriable
+  `DBAPIError` even when re-wrapped. Bare `@postgres_retry` or
+  `@postgres_retry(retries=N)`.
+- **`build_connection_factory`** returns an async creator for
+  `async_engine_from_config`, load-balancing and failing over across multi-host
+  DSNs before raising `TargetServerAttributeNotMatched`.
 
 ## Linting / Type Checking
 
