@@ -1,5 +1,5 @@
 ---
-summary: Split build_connection_factory into a pure build_connection_plan(url) -> ConnectionPlan and a thin failover loop, so host-plan parsing/ordering is unit-tested without mocking asyncpg.connect and the connect call is written once.
+summary: Extracted build_connection_plan(url) -> ConnectionPlan as a pure internal seam and reduced build_connection_factory to a thin failover loop, eliminating the duplicated asyncpg.connect call and enabling mock-free unit tests of host-plan parsing.
 ---
 
 # Design: Split the connection factory into plan + failover loop
