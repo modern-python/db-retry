@@ -15,7 +15,17 @@ Recipes live in the `Justfile` (`just --list`); the bare `just` runs the full
 
 The CI `DB_DSN` format: `postgresql+asyncpg://postgres:postgres@localhost:5432/postgres`
 
+## Workflow
+
+Planning follows [`planning/README.md`](planning/README.md) — its **Quick path**
+is the authoritative convention for making a change (choose a lane, create a
+bundle under `planning/changes/`, ship the `architecture/` promotion in the same
+PR). Run `just check-planning` (also wired into `just lint-ci`) before pushing.
+
 ## Architecture
+
+When a change alters a capability's behavior, update the matching
+`architecture/<capability>.md` in the same PR.
 
 The package (`db_retry/`) exposes five public symbols via `__init__.py`:
 
