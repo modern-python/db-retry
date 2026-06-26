@@ -10,8 +10,9 @@ These files carry **no frontmatter** — they are prose, dated by git.
 
 ## Capabilities
 
-- [retry.md](retry.md) — `postgres_retry`, the async tenacity decorator and its
-  cause-chain retry predicate.
+- [retry.md](retry.md) — `postgres_retry`, the async tenacity decorator.
+- [retriable.md](retriable.md) — `is_retriable` / `RETRIABLE_ASYNCPG_ERRORS`,
+  the pure retriable-error predicate and cause-chain walk.
 - [connections.md](connections.md) — `build_connection_factory`, multi-host
   load balancing and failover.
 - [dsn.md](dsn.md) — `build_db_dsn` / `is_dsn_multihost`, DSN parsing and

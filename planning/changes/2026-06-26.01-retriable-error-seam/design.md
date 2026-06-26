@@ -1,5 +1,5 @@
 ---
-summary: Give the retriable-error predicate its own seam — a pure is_retriable(exc) -> bool in db_retry/retriable.py — so classification is tested in memory instead of through a live Postgres round-trip.
+summary: Extracted the retriable-error predicate into a pure is_retriable(exc) -> bool in db_retry/retriable.py, enabling in-memory classification tests; postgres_retry now consumes it via _log_and_decide.
 ---
 
 # Design: Give the retriable-error predicate its own seam
