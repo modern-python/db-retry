@@ -1,4 +1,4 @@
-# ruff: noqa: INP001, D212  # planning/ is not a Python package; D212/D213 conflict differs from faststream-outbox
+# ruff: noqa: INP001, D212  # planning/ is not a Python package; the module docstring uses the D213 (second-line summary) style, so D212 is suppressed
 """
 Generate the planning index from frontmatter.
 
