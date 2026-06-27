@@ -1,6 +1,7 @@
 import dataclasses
 import logging
 import random
+import types
 import typing
 from operator import itemgetter
 
@@ -48,7 +49,7 @@ def build_connection_plan(url: sqlalchemy.URL) -> ConnectionPlan:
         primary_port = raw_ports
         failover = ()
     return ConnectionPlan(
-        connect_args=connect_args,
+        connect_args=types.MappingProxyType(connect_args),
         target_session_attrs=target_session_attrs,
         primary_host=primary_host,
         primary_port=primary_port,
