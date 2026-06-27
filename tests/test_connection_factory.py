@@ -81,6 +81,13 @@ def test_build_connection_plan_multihost() -> None:
     assert "target_session_attrs" not in plan.connect_args
 
 
+def test_build_connection_plan_connect_args_is_read_only() -> None:
+    url: typing.Final = sqlalchemy.make_url("postgresql+asyncpg://user:password@host1:5432/database")
+    plan: typing.Final[ConnectionPlan] = build_connection_plan(url)
+    with pytest.raises(TypeError):
+        plan.connect_args["injected"] = "value"  # ty: ignore[invalid-assignment]  # read-only at runtime
+
+
 def test_build_connection_plan_single_host() -> None:
     port: typing.Final = 5432
     url: typing.Final = sqlalchemy.make_url(f"postgresql+asyncpg://user:password@host1:{port}/database")
