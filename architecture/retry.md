@@ -16,7 +16,9 @@ async def handler(...) -> ...: ...
 
 Two `typing.overload`s back the dual form: called with a function it returns the
 wrapped function; called with `func=None` (i.e. `@postgres_retry(...)`) it
-returns a decorator. The wrapped function keeps its signature via
+returns a decorator. The generics are expressed with module-level `typing.ParamSpec`/`TypeVar`
+and `TypeAlias` aliases (`_Func`, `_Decorator`) rather than PEP 695 syntax,
+so the module parses on Python 3.11+. The wrapped function keeps its signature via
 `functools.wraps`. `retries` defaults to `None`, which defers to
 [`settings.get_retries_number()`](settings.md) **at call time** — so the env var
 is read per invocation, not frozen at decoration.
