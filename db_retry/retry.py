@@ -22,8 +22,8 @@ def _log_and_decide(exception: BaseException) -> bool:
 P = typing.ParamSpec("P")
 T = typing.TypeVar("T")
 
-_Func: typing.TypeAlias = typing.Callable[P, typing.Coroutine[None, None, T]]  # noqa: UP040
-_Decorator: typing.TypeAlias = typing.Callable[[_Func], _Func]  # noqa: UP040
+_Func: typing.TypeAlias = typing.Callable[P, typing.Coroutine[None, None, T]]
+_Decorator: typing.TypeAlias = typing.Callable[[_Func], _Func]
 
 
 @typing.overload
