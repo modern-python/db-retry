@@ -2,7 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/db-retry.svg)](https://pypi.org/project/db-retry/)
 [![Supported Python versions](https://img.shields.io/pypi/pyversions/db-retry.svg)](https://pypi.org/project/db-retry/)
-[![Downloads](https://img.shields.io/pypi/dm/db-retry.svg)](https://pypistats.org/packages/db-retry)
+[![Downloads](https://static.pepy.tech/badge/db-retry/month)](https://pepy.tech/projects/db-retry)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://github.com/modern-python/db-retry/actions/workflows/ci.yml)
 [![CI](https://github.com/modern-python/db-retry/actions/workflows/ci.yml/badge.svg)](https://github.com/modern-python/db-retry/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/modern-python/db-retry.svg)](https://github.com/modern-python/db-retry/blob/main/LICENSE)
