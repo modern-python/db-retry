@@ -19,23 +19,26 @@ def _log_and_decide(exception: BaseException) -> bool:
     return False
 
 
-type _Func[**P, T] = typing.Callable[P, typing.Coroutine[None, None, T]]
-type _Decorator[**P, T] = typing.Callable[[_Func[P, T]], _Func[P, T]]
+P = typing.ParamSpec("P")
+T = typing.TypeVar("T")
+
+_Func: typing.TypeAlias = typing.Callable[P, typing.Coroutine[None, None, T]]
+_Decorator: typing.TypeAlias = typing.Callable[[_Func], _Func]
 
 
 @typing.overload
-def postgres_retry[**P, T](func: _Func[P, T], *, retries: int | None = ...) -> _Func[P, T]: ...
+def postgres_retry(func: _Func, *, retries: int | None = ...) -> _Func: ...
 
 
 @typing.overload
-def postgres_retry[**P, T](func: None = ..., *, retries: int | None = ...) -> _Decorator[P, T]: ...
+def postgres_retry(func: None = ..., *, retries: int | None = ...) -> _Decorator: ...
 
 
-def postgres_retry[**P, T](
-    func: _Func[P, T] | None = None,
+def postgres_retry(
+    func: _Func | None = None,
     *,
     retries: int | None = None,
-) -> _Func[P, T] | _Decorator[P, T]:
+) -> _Func | _Decorator:
     def decorator(f: _Func[P, T]) -> _Func[P, T]:
         @functools.wraps(f)
         async def wrapped_method(*args: P.args, **kwargs: P.kwargs) -> T:

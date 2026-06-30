@@ -5,12 +5,14 @@ authors = [
     { name = "Artur Shiriev", email = "me@shiriev.ru" },
 ]
 readme = "README.md"
-requires-python = ">=3.13,<4"
+requires-python = ">=3.11,<4"
 license = "MIT"
 keywords = ["postgresql", "sqlalchemy", "retry", "database", "asyncio", "python"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
@@ -55,7 +57,7 @@ module-root = ""
 fix = false
 unsafe-fixes = true
 line-length = 120
-target-version = "py313"
+target-version = "py311"
 
 [tool.ruff.format]
 docstring-code-format = true
