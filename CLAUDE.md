@@ -19,8 +19,8 @@ The CI `DB_DSN` format: `postgresql+asyncpg://postgres:postgres@localhost:5432/p
 
 Planning follows [`planning/README.md`](planning/README.md) — its **Quick path**
 is the authoritative convention for making a change (choose a lane, create a
-bundle under `planning/changes/`, ship the `architecture/` promotion in the same
-PR). Run `just check-planning` (also wired into `just lint-ci`) before pushing.
+change file under `planning/changes/`, ship the `architecture/` promotion in the
+same PR). Run `just check-planning` (also wired into `just lint-ci`) before pushing.
 
 ## Architecture
 
