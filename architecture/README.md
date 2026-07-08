@@ -30,5 +30,5 @@ down.
 ## Promotion rule
 
 Shipping a change hand-edits the affected capability file(s) here to match the
-new reality, in the same PR as the code. The change bundle stays in place under
+new reality, in the same PR as the code. The change file stays in place under
 [`../planning/changes/`](../planning/changes/) — no folder move.
