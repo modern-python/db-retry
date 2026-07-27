@@ -66,9 +66,7 @@ class User(DeclarativeBase):
 # Apply retry logic to ORM operations (uses DB_RETRY_RETRIES_NUMBER, default 3)
 @postgres_retry
 async def get_user_by_email(session: AsyncSession, email: str) -> User:
-    return await session.scalar(
-        sa.select(User).where(User.email == email)
-    )
+    return await session.scalar(sa.select(User).where(User.email == email))
 
 
 async def main():
@@ -87,8 +85,7 @@ Per-callsite retry count override:
 
 ```python
 @postgres_retry(retries=5)
-async def create_order(session: AsyncSession, order: Order) -> Order:
-    ...
+async def create_order(session: AsyncSession, order: Order) -> Order: ...
 ```
 
 ### 2. High Availability Database Connections
@@ -102,25 +99,15 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from db_retry import build_connection_factory, build_db_dsn
 
 # Configure multiple database hosts for high availability
-multi_host_dsn = (
-    "postgresql://user:password@/"
-    "myapp_db?"
-    "host=primary-db:5432&"
-    "host=secondary-db:5432&"
-    "host=backup-db:5432"
-)
+multi_host_dsn = "postgresql://user:password@/myapp_db?host=primary-db:5432&host=secondary-db:5432&host=backup-db:5432"
 
 # Build production-ready DSN
-dsn = build_db_dsn(
-    db_dsn=multi_host_dsn,
-    database_name="production_database",
-    drivername="postgresql+asyncpg"
-)
+dsn = build_db_dsn(db_dsn=multi_host_dsn, database_name="production_database", drivername="postgresql+asyncpg")
 
 # Create connection factory with timeout
 connection_factory = build_connection_factory(
     url=dsn,
-    timeout=5.0  # 5 second connection timeout
+    timeout=5.0,  # 5 second connection timeout
 )
 
 # Engine will automatically try different hosts on failure
@@ -153,8 +140,8 @@ class CreateEventUseCase:
 
     @postgres_retry
     async def __call__(
-            self,
-            event_create_data: AnalyticsEventCreate,
+        self,
+        event_create_data: AnalyticsEventCreate,
     ) -> AnalyticsEvent:
         async with self.transaction:
             model: typing.Final = EventsTable(
@@ -166,7 +153,6 @@ class CreateEventUseCase:
             await self.analytics_events_producer.send_message(event)
             await self.transaction.commit()
             return event
-
 ```
 
 ### 4. Serializable Transactions for Consistency

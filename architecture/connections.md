@@ -25,11 +25,11 @@ slotted `ConnectionPlan`:
 
 ```python
 class ConnectionPlan:
-    connect_args: Mapping[str, Any]           # base kwargs, minus host/port/target_session_attrs
+    connect_args: Mapping[str, Any]  # base kwargs, minus host/port/target_session_attrs
     target_session_attrs: SessionAttribute | None
-    primary_host: str | list[str]             # list for multi-host, scalar for single
+    primary_host: str | list[str]  # list for multi-host, scalar for single
     primary_port: int | list[int] | None
-    failover: tuple[tuple[str, int], ...]     # per-host pairs; () for single-host
+    failover: tuple[tuple[str, int], ...]  # per-host pairs; () for single-host
 ```
 
 `target_session_attrs` (e.g. `read-write`/`prefer-standby` set by
