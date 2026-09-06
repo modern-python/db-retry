@@ -18,6 +18,20 @@ def test_retriable_asyncpg_errors_contains_expected_classes() -> None:
     assert asyncpg.PostgresConnectionError in RETRIABLE_ASYNCPG_ERRORS
 
 
+def test_a_statement_of_unknown_outcome_is_never_retriable() -> None:
+    """INVARIANT: ``asyncpg.StatementCompletionUnknownError`` never classifies as retriable.
+
+    Broken by widening the taxonomy to a base class that swallows it -- and the tempting
+    base is ``asyncpg.TransactionRollbackError``, because the retriable
+    ``SerializationError`` is a sibling underneath it. The two are not interchangeable. A
+    serialization failure definitely rolled back, so repeating the operation is free;
+    ``40003`` means the server lost track of whether the statement committed, so repeating
+    it can apply a write twice. Everything above this predicate treats a retry as a repeat
+    of something that did not happen, and only this boundary makes that true.
+    """
+    assert is_retriable(_make_dbapi_error(asyncpg.StatementCompletionUnknownError())) is False
+
+
 @pytest.mark.parametrize(
     ("exception", "expected"),
     [

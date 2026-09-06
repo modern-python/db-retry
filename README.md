@@ -22,7 +22,7 @@ A Python library providing robust retry mechanisms, connection utilities, and tr
 
 ## Features
 
-- **Retry Decorators**: Automatic retry logic for transient database errors
+- **Retry Decorators**: Automatic retry logic for retriable database errors
 - **Connection Factories**: Robust connection handling with multi-host support
 - **DSN Utilities**: Flexible Data Source Name parsing and manipulation
 - **Transaction Helpers**: Simplified transaction management with automatic cleanup
@@ -45,7 +45,7 @@ pip install db-retry
 
 ### 1. Database Operations with Automatic Retry
 
-Protect your database operations from transient failures using ORM models:
+Protect your database operations from retriable failures using ORM models:
 
 ```python
 import asyncio
