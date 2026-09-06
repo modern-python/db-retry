@@ -1,10 +1,10 @@
-# CLAUDE.md
+# AGENTS.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Commands
 
-Recipes live in the `Justfile` (`just --list`); the bare `just` runs the full
+Recipes live in the `justfile` (`just --list`); the bare `just` runs the full
 `install lint build test` pipeline. Non-obvious notes:
 
 - `just test` runs pytest inside Docker (needs the compose postgres). To run
