@@ -1,57 +1,66 @@
 # AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this
+repository.
+
+## Project Overview
+
+`db-retry` is a library of retry, connection, and transaction helpers for PostgreSQL applications
+built on SQLAlchemy's asyncio extension and asyncpg; [`CONTEXT.md`](CONTEXT.md) opens with what it
+does and owns the vocabulary — read it before naming a concept in code, a test name, or an issue
+title. The words most easily got wrong here are the ones this package shares with PostgreSQL and
+with tenacity: what "retriable" covers, what a "retry" counts, and what "primary" does not mean.
 
 ## Commands
 
-Recipes live in the `justfile` (`just --list`); the bare `just` runs the full
-`install lint build test` pipeline. Non-obvious notes:
-
-- `just test` runs pytest inside Docker (needs the compose postgres). To run
-  locally without Docker, set `DB_DSN` and use `uv run pytest` directly
-  (e.g. `uv run pytest tests/test_retry.py::test_postgres_retry` for one test).
-- `just lint` auto-fixes (eof-fixer, ruff format, ruff check --fix, ty check);
-  `just lint-ci` is the same checks in no-fix/`--check` mode (CI gate).
-
-The CI `DB_DSN` format: `postgresql+asyncpg://postgres:postgres@localhost:5432/postgres`
-
-## Workflow
-
-Planning follows [`planning/README.md`](planning/README.md) — its **Quick path**
-is the authoritative convention for making a change (choose a lane, create a
-change file under `planning/changes/`, ship the `architecture/` promotion in the
-same PR). Run `just check-planning` (also wired into `just lint-ci`) before pushing.
+`just` (task runner) and `uv` (package manager). The [`justfile`](justfile) is the source of truth —
+`just --list`, or read it. Two things it does not say: a `ty` suppression is written `# ty: ignore`,
+never `# type: ignore`; and `just test` is Docker-only, so without a Docker daemon, point `DB_DSN`
+at any reachable PostgreSQL and run `uv run pytest` directly.
 
 ## Architecture
 
-> Quick orientation only. The authoritative, code-current account of each
-> capability lives in [`architecture/`](architecture/) — one file per
-> capability. **When a change alters a capability's behavior, update the matching
-> `architecture/<capability>.md` in the same PR** — that promotion is what keeps
-> `architecture/` true; code that changes without it silently rots the truth home.
+Every module under `db_retry/` is named for what it does and is short enough to read whole. Read
+them.
 
-The package (`db_retry/`) exposes five public symbols via `__init__.py`. Read
-the matching capability file before changing behavior:
+## Workflow
 
-| Symbol(s) | Source | Capability file |
-|---|---|---|
-| `postgres_retry` | `retry.py` | [architecture/retry.md](architecture/retry.md) |
-| `build_connection_factory` | `connections.py` | [architecture/connections.md](architecture/connections.md) |
-| `build_db_dsn`, `is_dsn_multihost` | `dsn.py` | [architecture/dsn.md](architecture/dsn.md) |
-| `Transaction` | `transaction.py` | [architecture/transaction.md](architecture/transaction.md) |
-| `get_retries_number` | `settings.py` | [architecture/settings.md](architecture/settings.md) |
+**The spec for a change is its PR body**, not a committed file: why, design, non-goals,
+verification, reviewed with the diff. There is no change file and no lane to choose. A trivial PR
+(typo, dep bump, formatter, CI tweak) ships a conventional-commit title with no body ceremony.
 
-- **`postgres_retry`** is an async tenacity decorator that retries on
-  `asyncpg.SerializationError` (40001) and `asyncpg.PostgresConnectionError`
-  (08xxx), walking the `__cause__`/`__context__` chain to find a retriable
-  `DBAPIError` even when re-wrapped. Bare `@postgres_retry` or
-  `@postgres_retry(retries=N)`.
-- **`build_connection_factory`** returns an async creator for
-  `async_engine_from_config`, load-balancing and failing over across multi-host
-  DSNs before raising `TargetServerAttributeNotMatched`.
+Two things outlive the PR, and there are exactly two places to put them: an alternative **rejected**
+with reasoning becomes an ADR in [`docs/adr/`](docs/adr/) (`NNNN-slug.md`, sequential, with a
+revisit trigger), and real work **not scheduled** becomes a GitHub issue. There is no third state,
+and no separate truth-home directory — a behaviour change is reviewed with the diff, not promoted
+to a page.
 
-## Linting / Type Checking
+### Where a fact goes
 
-Ruff is configured with `select = ["ALL"]` plus specific exclusions; line length
-is 120. Type checking uses `ty` (not mypy) — in code, use `ty: ignore` for
-suppression comments (not `type: ignore`).
+Four homes, one owner each:
+
+| Home | Holds |
+|---|---|
+| `db_retry/` | anything readable from the module — the default |
+| a named test | an **invariant**: must stay true, and a change could silently break it |
+| `docs/adr/` | a rejected alternative, with the reasoning that would otherwise be re-litigated |
+| `README.md` | anything a user needs |
+
+Before writing a line anywhere:
+
+> Can an agent get this by reading `db_retry/`? → **don't write it.**
+> Would a wrong change here fail a test? → it belongs **in the test**, not in prose.
+> Does a user need it? → **`README.md`**.
+> Otherwise it does not get written.
+
+**Prose about mechanism has no home. There is no file to add a paragraph to.** This file included:
+it is always loaded, so a line that restates a docstring, the justfile, or `pyproject.toml` costs
+every turn and rots in two places at once. A package this small tempts a full restatement of its own
+source; that is the failure mode to watch for here.
+
+An invariant is a test whose name is the claim, with a docstring opening `INVARIANT:` and a second
+paragraph naming **what breaks it** — design rationale, not a report of what this one test catches.
+Nothing enforces that docstring shape; it is read at review time. A relative link to an ADR *is*
+checked — CI runs lychee `--offline` over every `.md` — but a path named in a docstring or a comment
+is not. Both ADRs and `INVARIANT:` docstrings ratchet: nothing prunes a record once its call is
+settled. Keeping them lean is a standing habit.

@@ -27,13 +27,6 @@ lint-ci:
     uv run ruff format --check
     uv run ruff check --no-fix
     uv run ty check
-    uv run python planning/index.py --check
-
-index:
-    uv run python planning/index.py
-
-check-planning:
-    uv run python planning/index.py --check
 
 # Auth via PyPI Trusted Publishing (OIDC); uv publish auto-detects the CI id-token.
 publish:

@@ -74,11 +74,36 @@ def test_build_connection_plan_multihost() -> None:
     assert set(plan.failover) == {("host1", 5432), ("host2", 5432)}
     assert isinstance(plan.primary_host, list)
     assert isinstance(plan.primary_port, list)
-    assert list(zip(plan.primary_host, plan.primary_port, strict=True)) == list(plan.failover)
     assert plan.target_session_attrs == SessionAttribute("read-write")
     assert "host" not in plan.connect_args
     assert "port" not in plan.connect_args
     assert "target_session_attrs" not in plan.connect_args
+
+
+def test_host_and_port_stay_paired_through_the_shuffle() -> None:
+    """INVARIANT: no plan ever pairs one host's name with another host's port.
+
+    Broken by shuffling ``primary_host`` and ``primary_port`` as two independent lists, or by
+    deriving ``failover`` from a second shuffle of its own rather than from the one that produced
+    the primary order. Both read as tidier code and both silently mis-pair. Nothing downstream can
+    catch it: ``_connect`` hands whatever pair it is given straight to asyncpg, so a swap surfaces
+    as a refused connection that is indistinguishable from a host being down -- on the failover
+    path, which by definition only runs when hosts are already failing. This is also why the DSN
+    here gives each host a distinct port; with matching ports a swap is unobservable. Six hosts
+    rather than two for the same reason: the assertions are order-independent, so a mis-pairing
+    build can still be let through by a shuffle that happens to come out in step, and six hosts put
+    that at one run in 720 instead of one in two.
+    """
+    expected: typing.Final = {(f"host{n}", 5431 + n) for n in range(1, 7)}
+    hosts: typing.Final = "&".join(f"host={host}:{port}" for host, port in sorted(expected))
+    plan: typing.Final[ConnectionPlan] = build_connection_plan(
+        sqlalchemy.make_url(f"postgresql+asyncpg://user:password@/database?{hosts}")
+    )
+    assert isinstance(plan.primary_host, list)
+    assert isinstance(plan.primary_port, list)
+    assert set(plan.failover) == expected
+    assert set(zip(plan.primary_host, plan.primary_port, strict=True)) == expected
+    assert list(zip(plan.primary_host, plan.primary_port, strict=True)) == list(plan.failover)
 
 
 def test_build_connection_plan_connect_args_is_read_only() -> None:
