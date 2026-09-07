@@ -212,7 +212,7 @@ export DB_RETRY_RETRIES_NUMBER=5
 
 ## 📦 [PyPI](https://pypi.org/project/db-retry)
 
-## 📝 [License](LICENSE)
+## 📝 [License](https://github.com/modern-python/db-retry/blob/main/LICENSE)
 
 ## Part of `modern-python`
 
