@@ -42,12 +42,13 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v6
+      - uses: extractions/setup-just@v4
       - uses: astral-sh/setup-uv@v8.2.0
       - run: uv python install ${{ matrix.python-version }}
       - run: uv python pin ${{ matrix.python-version }}
       - run: |
           uv sync --all-extras --no-install-project
-          uv run --no-sync pytest . --cov=. --cov-report xml
+          just test-ci
         env:
           PYTHONDONTWRITEBYTECODE: 1
           PYTHONUNBUFFERED: 1
