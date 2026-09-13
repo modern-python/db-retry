@@ -14,9 +14,8 @@ with tenacity: what "retriable" covers, what a "retry" counts, and what "primary
 ## Commands
 
 `just` (task runner) and `uv` (package manager). The [`justfile`](justfile) is the source of truth —
-`just --list`, or read it. Two things it does not say: a `ty` suppression is written `# ty: ignore`,
-never `# type: ignore`; and `just test` is Docker-only, so without a Docker daemon, point `DB_DSN`
-at any reachable PostgreSQL and run `uv run pytest` directly.
+`just --list`, or read it. The one thing it does not say: `just test` is Docker-only, so without a
+Docker daemon, point `DB_DSN` at any reachable PostgreSQL and run `uv run pytest` directly.
 
 ## Architecture
 
@@ -25,11 +24,6 @@ them.
 
 ## Workflow
 
-Real work **not scheduled** becomes a GitHub issue.
-
 Every link in `README.md` must be absolute: `https://github.com/modern-python/<repo>/blob/main/<path>`,
 or `.../tree/main/<path>` for a directory. Never a relative path: `README.md` is also the PyPI long
 description, and PyPI does not rewrite relative links, so a relative one 404s on the package page.
-
-An invariant is a test whose name is the claim, with a docstring opening `INVARIANT:` and a second
-paragraph naming **what breaks it** — design rationale, not a report of what this one test catches.
