@@ -10,7 +10,15 @@ concurrency:
 
 jobs:
   checks:
-    uses: ./.github/workflows/_checks.yml
+    uses: modern-python/.github/.github/workflows/checks.yml@shared-checks
+    secrets: inherit
+    with:
+      service-image: postgres:latest
+      service-port: 5432:5432
+      service-health-cmd: pg_isready
+      test-env: DB_DSN=postgresql+asyncpg://postgres:password@127.0.0.1/postgres
+      # SQLAlchemy's cyext does not declare free-thread safety (fixed upstream for 2.1): use the pure-Python fallback on the t build.
+      free-threaded-env: DISABLE_SQLALCHEMY_CEXT_RUNTIME=1
 
   report-failure:
     needs: checks
