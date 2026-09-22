@@ -60,6 +60,56 @@ jobs:
           PYTHONUNBUFFERED: 1
           DB_DSN: postgresql+asyncpg://postgres:password@127.0.0.1/postgres
 
+  floors:
+    # Every other job resolves newest, so the declared floors are a claim nothing installs.
+    # This one resolves the bottom of each range, on every matrix entry: wheel coverage is
+    # per interpreter, so two interpreters resolving the same versions can still disagree
+    # on whether those versions install.
+    runs-on: ubuntu-latest
+    env:
+      # SQLAlchemy's cyext does not declare free-thread safety (fixed upstream for 2.1): use the pure-Python fallback on the t build.
+      DISABLE_SQLALCHEMY_CEXT_RUNTIME: ${{ matrix.python-version == '3.14t' && '1' || '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.11"
+          - "3.12"
+          - "3.13"
+          - "3.14"
+          - "3.14t"
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/pyproject.toml"
+      - run: uv python install ${{ matrix.python-version }}
+      - run: uv python pin ${{ matrix.python-version }}
+      # --no-build so a floor with no wheel for this interpreter fails here instead of
+      # quietly compiling its sdist; --no-install-project because that flag would refuse to
+      # build this project too, and the tests import it from the checkout.
+      - run: uv sync --all-extras --no-install-project --resolution lowest-direct --no-build
+      - run: uv run --no-sync pytest
+        env:
+          PYTHONDONTWRITEBYTECODE: 1
+          PYTHONUNBUFFERED: 1
+          DB_DSN: postgresql+asyncpg://postgres:password@127.0.0.1/postgres
+
   links:
     runs-on: ubuntu-latest
     steps:

@@ -24,11 +24,14 @@ dependencies = [
     "tenacity>=8.4.1",
     # 2.0.31 is the first release that tolerates the __static_attributes__ and __firstlineno__
     # attributes Python 3.13 added; below it SQLAlchemy's TypingOnly check fails at import.
-    "sqlalchemy[asyncio]>=2.0.18; python_version < '3.13'",
+    # 2.0.20, not 2.0.18: advanced-alchemy requires it, so nothing here can exercise 2.0.18.
+    "sqlalchemy[asyncio]>=2.0.20; python_version < '3.13'",
     "sqlalchemy[asyncio]>=2.0.31; python_version >= '3.13'",
-    # asyncpg declares requires-python >=3.8 throughout but ships no cp313 wheel before 0.30 and no
-    # cp314 wheel before 0.31, so a resolver picks an sdist that cannot build rather than conflicting.
-    "asyncpg>=0.28; python_version < '3.13'",
+    # asyncpg declares requires-python >=3.8 throughout but ships no cp312 wheel before 0.29, no
+    # cp313 wheel before 0.30 and no cp314 wheel before 0.31, so a resolver picks an sdist that
+    # cannot build rather than conflicting.
+    "asyncpg>=0.28; python_version < '3.12'",
+    "asyncpg>=0.29; python_version == '3.12'",
     "asyncpg>=0.30; python_version == '3.13'",
     "asyncpg>=0.31; python_version >= '3.14'",
 ]
@@ -40,11 +43,12 @@ Issues = "https://github.com/modern-python/db-retry/issues"
 Changelog = "https://github.com/modern-python/db-retry/releases"
 
 [dependency-groups]
+# Floored so `uv sync --resolution lowest-direct` resolves a usable harness, not each name's first release.
 dev = [
-    "pytest",
-    "pytest-cov",
-    "pytest-asyncio",
-    "advanced-alchemy",
+    "pytest>=8",
+    "pytest-cov>=5",
+    "pytest-asyncio>=0.24",
+    "advanced-alchemy>=1",
 ]
 lint = [
     "ruff",
