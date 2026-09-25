@@ -144,3 +144,28 @@ async def test_a_retry_never_re_runs_the_body_immediately(monkeypatch: pytest.Mo
 
     assert len(waits) == 3  # noqa: PLR2004  # four attempts, one wait between each pair
     assert all(wait > 0 for wait in waits)
+
+
+async def test_a_connect_time_connection_error_is_retried(monkeypatch: pytest.MonkeyPatch) -> None:
+    _record_backoff(monkeypatch)
+    attempts = 0
+
+    async def _refusing_creator() -> asyncpg.Connection:
+        nonlocal attempts
+        attempts += 1
+        msg = "connection refused"
+        raise asyncpg.PostgresConnectionError(msg)
+
+    engine: typing.Final = sa_async.create_async_engine("postgresql+asyncpg://", async_creator=_refusing_creator)
+    expected_attempts: typing.Final = 2
+
+    @postgres_retry(retries=expected_attempts)
+    async def connect() -> None:
+        await engine.connect().__aenter__()
+
+    try:
+        with pytest.raises((asyncpg.PostgresConnectionError, DBAPIError)):
+            await connect()
+    finally:
+        await engine.dispose()
+    assert attempts == expected_attempts

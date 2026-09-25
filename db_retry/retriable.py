@@ -6,15 +6,14 @@ RETRIABLE_ASYNCPG_ERRORS = (asyncpg.SerializationError, asyncpg.PostgresConnecti
 
 
 def _is_retriable_link(exception: BaseException) -> bool:
-    return (
-        isinstance(exception, DBAPIError)
-        and exception.orig is not None
-        and isinstance(exception.orig.__cause__, RETRIABLE_ASYNCPG_ERRORS)
+    candidate = (
+        exception.orig.__cause__ if isinstance(exception, DBAPIError) and exception.orig is not None else exception
     )
+    return isinstance(candidate, RETRIABLE_ASYNCPG_ERRORS)
 
 
 def is_retriable(exception: BaseException) -> bool:
-    """Walk __cause__/__context__; True if any link is a retriable DBAPIError."""
+    """Walk __cause__/__context__; True if any link is a retriable asyncpg error, raw or wrapped in a DBAPIError."""
     current: BaseException | None = exception
     seen: set[int] = set()
     while current is not None and id(current) not in seen:
