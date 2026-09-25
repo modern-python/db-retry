@@ -6,6 +6,7 @@ import asyncpg
 import pytest
 import sqlalchemy
 from asyncpg.connect_utils import SessionAttribute
+from sqlalchemy import exc as sa_exc
 from sqlalchemy.ext import asyncio as sa_async
 
 from db_retry.connections import ConnectionPlan, build_connection_factory, build_connection_plan
@@ -49,10 +50,13 @@ async def test_connection_factory_failure_several_hosts(
         url=url, echo=True, echo_pool=True, async_creator=build_connection_factory(url=url, timeout=1.0)
     )
     try:
-        with pytest.raises(asyncpg.TargetServerAttributeNotMatched):
+        with pytest.raises((asyncpg.TargetServerAttributeNotMatched, sa_exc.InternalError)) as exc_info:
             await engine.connect().__aenter__()
     finally:
         await engine.dispose()
+    raised = exc_info.value
+    root = raised.orig.__cause__ if isinstance(raised, sa_exc.InternalError) and raised.orig is not None else raised
+    assert isinstance(root, asyncpg.TargetServerAttributeNotMatched)
 
 
 async def test_connection_factory_failure_and_success(monkeypatch: pytest.MonkeyPatch) -> None:
