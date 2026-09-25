@@ -42,6 +42,10 @@ def test_a_statement_of_unknown_outcome_is_never_retriable() -> None:
         ),
         pytest.param(_make_dbapi_error(asyncpg.PostgresError()), False, id="non_retriable_postgres_error"),
         pytest.param(ValueError("not a db error"), False, id="bare_non_dbapi_exception"),
+        pytest.param(asyncpg.SerializationError(), True, id="raw_serialization_error_40001"),
+        pytest.param(asyncpg.PostgresConnectionError(), True, id="raw_postgres_connection_error_08000"),
+        pytest.param(asyncpg.StatementCompletionUnknownError(), False, id="raw_statement_completion_unknown_40003"),
+        pytest.param(asyncpg.PostgresError(), False, id="raw_non_retriable_postgres_error"),
     ],
 )
 def test_is_retriable(exception: BaseException, expected: bool) -> None:
