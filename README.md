@@ -18,14 +18,14 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)](https://github.com/astral-sh/ty)
 
-A Python library providing robust retry mechanisms, connection utilities, and transaction helpers for PostgreSQL and SQLAlchemy applications.
+Retry helpers for PostgreSQL and SQLAlchemy, plus multi-host connection and transaction utilities.
 
 ## Features
 
-- **Retry Decorators**: Automatic retry logic for retriable database errors
-- **Connection Factories**: Robust connection handling with multi-host support
-- **DSN Utilities**: Flexible Data Source Name parsing and manipulation
-- **Transaction Helpers**: Simplified transaction management with automatic cleanup
+- `postgres_retry`: retries a coroutine on asyncpg serialization and connection errors.
+- `build_connection_factory`: multi-host asyncpg connections with failover on timeout.
+- `build_db_dsn` and `is_dsn_multihost`: DSN parsing and manipulation.
+- `Transaction`: transaction context manager that rolls back and closes the session on exit.
 
 ## Installation
 
@@ -41,11 +41,11 @@ uv add db-retry
 pip install db-retry
 ```
 
-## ORM-Based Usage Examples
+## Usage examples
 
-### 1. Database Operations with Automatic Retry
+### 1. Database operations with automatic retry
 
-Protect your database operations from retriable failures using ORM models:
+Retry a coroutine on asyncpg serialization or connection errors:
 
 ```python
 import asyncio
@@ -55,7 +55,11 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from db_retry import postgres_retry
 
 
-class User(DeclarativeBase):
+class Base(DeclarativeBase):
+    pass
+
+
+class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -63,7 +67,7 @@ class User(DeclarativeBase):
     email: Mapped[str] = mapped_column(sa.String(), index=True)
 
 
-# Apply retry logic to ORM operations (uses DB_RETRY_RETRIES_NUMBER, default 3)
+# Total attempts come from DB_RETRY_RETRIES_NUMBER (default 3: the first call plus 2 retries)
 @postgres_retry
 async def get_user_by_email(session: AsyncSession, email: str) -> User:
     return await session.scalar(sa.select(User).where(User.email == email))
@@ -81,27 +85,25 @@ async def main():
 asyncio.run(main())
 ```
 
-Per-callsite retry count override:
+Per-callsite override of the total number of attempts:
 
 ```python
 @postgres_retry(retries=5)
 async def create_order(session: AsyncSession, order: Order) -> Order: ...
 ```
 
-### 2. High Availability Database Connections
+### 2. High availability database connections
 
-Set up resilient database connections with multiple fallback hosts:
+Connect to one of several hosts:
 
 ```python
-import sqlalchemy as sa
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.ext.asyncio import create_async_engine
 from db_retry import build_connection_factory, build_db_dsn
 
 # Configure multiple database hosts for high availability
 multi_host_dsn = "postgresql://user:password@/myapp_db?host=primary-db:5432&host=secondary-db:5432&host=backup-db:5432"
 
-# Build production-ready DSN
+# Set the database name, driver and target_session_attrs
 dsn = build_db_dsn(db_dsn=multi_host_dsn, database_name="production_database", drivername="postgresql+asyncpg")
 
 # Create connection factory with timeout
@@ -110,13 +112,13 @@ connection_factory = build_connection_factory(
     timeout=5.0,  # 5 second connection timeout
 )
 
-# Engine will automatically try different hosts on failure
+# On a connect timeout, the factory tries each host in turn
 engine = create_async_engine(dsn, async_creator=connection_factory)
 ```
 
-### 3. Simplified Transaction Management
+### 3. Transaction management
 
-Handle database transactions with automatic cleanup using ORM:
+Wrap a unit of work in a transaction that is rolled back and closed on exit:
 
 ```python
 import dataclasses
@@ -155,9 +157,9 @@ class CreateEventUseCase:
             return event
 ```
 
-### 4. Serializable Transactions for Consistency
+### 4. Serializable transactions
 
-Use serializable isolation level to prevent race conditions with ORM:
+Use the serializable isolation level to prevent race conditions:
 
 ```python
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -179,29 +181,29 @@ async def main():
 
 The library can be configured using environment variables:
 
-| Variable                | Description                                      | Default |
-|-------------------------|--------------------------------------------------|---------|
-| `DB_RETRY_RETRIES_NUMBER` | Number of retry attempts for database operations | 3       |
+| Variable                  | Description                              | Default |
+|---------------------------|------------------------------------------|---------|
+| `DB_RETRY_RETRIES_NUMBER` | Total attempts (first call plus retries) | 3       |
 
 Example:
 ```bash
 export DB_RETRY_RETRIES_NUMBER=5
 ```
 
-## API Reference
+## API reference
 
-### Retry Decorator
-- `@postgres_retry` - Decorator for async functions that should retry on database errors (uses `DB_RETRY_RETRIES_NUMBER`)
-- `@postgres_retry(retries=N)` - Override retry count per callsite
+### Retry decorator
+- `@postgres_retry` - Decorator for async functions that should retry on database errors (total attempts, first call plus retries, from `DB_RETRY_RETRIES_NUMBER`)
+- `@postgres_retry(retries=N)` - Override the total attempts (first call plus retries) per callsite
 - Retries also fire when the retriable `asyncpg` error is wrapped by [`advanced-alchemy`](https://github.com/litestar-org/advanced-alchemy)'s `wrap_sqlalchemy_exception()` (i.e. surfaced as `RepositoryError` / `IntegrityError`); the handler walks the `__cause__` / `__context__` chain.
 
-### Connection Utilities
+### Connection utilities
 - `build_connection_factory(url, timeout)` - Creates a connection factory for multi-host setups
-- `build_db_dsn(db_dsn, database_name, use_replica=False, drivername="postgresql")` - Builds a DSN with specified parameters
+- `build_db_dsn(db_dsn, database_name, use_replica=False, drivername="postgresql")` - Builds a DSN with the given database name and driver, and sets `target_session_attrs` to `read-write`, or to `prefer-standby` when `use_replica=True`
 - `is_dsn_multihost(db_dsn)` - Checks if a DSN contains multiple hosts
 
-### Transaction Helper
-- `Transaction(session, isolation_level=None)` - Context manager for transaction handling; auto-rolls back on exit if no explicit `.commit()` or `.rollback()` was called
+### Transaction helper
+- `Transaction(session, isolation_level=None)` - Context manager for transaction handling; on exit, rolls back if still in a transaction, then closes the session
 
 ## Requirements
 
