@@ -28,8 +28,8 @@ _Avoid_: retry, as a count. The knob is spelled `retries` for callers and cannot
 breaking them, but every number in this package counts attempts.
 
 **Primary host**:
-The host a `ConnectionPlan`'s first connect attempt is aimed at — which, for a multi-host DSN, is
-*every* host in shuffled order, handed to asyncpg to walk itself. "Primary" is a position in the
-two-stage connect (one bulk attempt, then host-by-host through `failover`), not a PostgreSQL
-replication role; replication role is `target_session_attrs`, where `read-write` selects a writable
-node and `prefer-standby` a replica.
+The host a connection's first connect attempt is aimed at — which, for a multi-host DSN, is
+*every* host, in an order shuffled afresh for each connection, handed to asyncpg to walk itself.
+"Primary" is a position in the two-stage connect (one bulk attempt, then host-by-host through
+`failover`), not a PostgreSQL replication role; replication role is `target_session_attrs`, where
+`read-write` selects a writable node and `prefer-standby` a replica.
