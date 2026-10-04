@@ -27,8 +27,17 @@ class ConnectionPlan:
     failover: tuple[tuple[str, int], ...]
 
 
+def parse_connect_args(url: sqlalchemy.URL) -> tuple[dict[str, typing.Any], list[tuple[str, int]]]:
+    connect_args: typing.Final[dict[str, typing.Any]] = PGDialect_asyncpg().create_connect_args(url)[1]
+    hosts: typing.Final = connect_args.get("host")
+    ports: typing.Final = connect_args.get("port")
+    if isinstance(hosts, list) and isinstance(ports, list):
+        return connect_args, list(zip(hosts, ports, strict=True))
+    return connect_args, []
+
+
 def build_connection_plan(url: sqlalchemy.URL) -> ConnectionPlan:
-    connect_args: dict[str, typing.Any] = PGDialect_asyncpg().create_connect_args(url)[1]
+    connect_args, hosts_and_ports = parse_connect_args(url)
     raw_target_session_attrs: str | None = connect_args.pop("target_session_attrs", None)
     target_session_attrs: SessionAttribute | None = (
         SessionAttribute(raw_target_session_attrs) if raw_target_session_attrs else None
@@ -38,8 +47,7 @@ def build_connection_plan(url: sqlalchemy.URL) -> ConnectionPlan:
     primary_host: str | list[str]
     primary_port: int | list[int] | None
     failover: tuple[tuple[str, int], ...]
-    if isinstance(raw_hosts, list) and isinstance(raw_ports, list):
-        hosts_and_ports: list[tuple[str, int]] = list(zip(raw_hosts, raw_ports, strict=True))
+    if hosts_and_ports:
         random.shuffle(hosts_and_ports)
         primary_host = list(map(itemgetter(0), hosts_and_ports))
         primary_port = list(map(itemgetter(1), hosts_and_ports))

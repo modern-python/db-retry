@@ -2,6 +2,8 @@ import typing
 
 import sqlalchemy as sa
 
+from db_retry.connections import parse_connect_args
+
 
 def build_db_dsn(
     db_dsn: str,
@@ -11,7 +13,7 @@ def build_db_dsn(
 ) -> sa.URL:
     """Parse DSN variable and replace some parts.
 
-    - DSN stored in format postgresql://login:password@/db_placeholder?host=host1&host=host2
+    - DSN stored in format postgresql://login:password@/db_placeholder?host=host1:5432&host=host2:5432
     https://docs.sqlalchemy.org/en/20/dialects/postgresql.html#specifying-multiple-fallback-hosts
     - 'db_placeholder' is replaced here with service database name
     - `target_session_attrs` is chosen based on `use_replica` arg
@@ -29,6 +31,4 @@ def build_db_dsn(
 
 
 def is_dsn_multihost(db_dsn: str) -> bool:
-    parsed_db_dsn: typing.Final = sa.make_url(db_dsn)
-    db_dsn_query: typing.Final[dict[str, typing.Any]] = dict(parsed_db_dsn.query or {})
-    return bool((hosts := db_dsn_query.get("host")) and isinstance(hosts, tuple) and len(hosts) > 1)
+    return bool(parse_connect_args(sa.make_url(db_dsn))[1])

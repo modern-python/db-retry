@@ -1,13 +1,18 @@
 import typing
 
+import pytest
+import sqlalchemy
+from sqlalchemy import exc as sa_exc
+
 from db_retry import build_db_dsn, is_dsn_multihost
+from db_retry.connections import build_connection_plan
 
 
 def test_build_db_dsn() -> None:
     database_name: typing.Final = "new_db_name"
     drivername: typing.Final = "postgresql+asyncpg"
     result_dsn: typing.Final = build_db_dsn(
-        db_dsn="postgresql://login:password@/db_placeholder?host=host1&host=host2",
+        db_dsn="postgresql://login:password@/db_placeholder?host=host1:5432&host=host2:5432",
         database_name=database_name,
         drivername=drivername,
     )
@@ -30,7 +35,7 @@ def test_use_replica_overrides_a_target_session_attrs_already_in_the_dsn() -> No
     """
     dsn: typing.Final = (
         "postgresql://login:password@/db_placeholder"
-        "?host=host1&host=host2&target_session_attrs=read-write&application_name=svc"
+        "?host=host1:5432&host=host2:5432&target_session_attrs=read-write&application_name=svc"
     )
 
     replica: typing.Final = build_db_dsn(db_dsn=dsn, database_name="db", use_replica=True)
@@ -43,7 +48,29 @@ def test_use_replica_overrides_a_target_session_attrs_already_in_the_dsn() -> No
     assert primary.query["target_session_attrs"] == "read-write"
 
 
+@pytest.mark.parametrize(
+    "db_dsn",
+    [
+        "postgresql://login:password@/db_placeholder?host=host1:5432&host=host2:5433",
+        "postgresql://login:password@/db_placeholder?host=host1,host2&port=5432,5433",
+        "postgresql://login:password@/db_placeholder?host=host1",
+        "postgresql://login:password@/db_placeholder?host=host1:5432",
+        "postgresql://login:password@host1:5432/db_placeholder",
+        "postgresql+asyncpg://login:password@/db_placeholder?host=host1,host2&port=5432,5433",
+    ],
+)
+def test_is_dsn_multihost_agrees_with_connection_plan(db_dsn: str) -> None:
+    assert is_dsn_multihost(db_dsn) == bool(build_connection_plan(sqlalchemy.make_url(db_dsn)).failover)
+
+
 def test_is_dsn_multihost() -> None:
-    assert is_dsn_multihost("postgresql://login:password@/db_placeholder?host=host1&host=host2")
+    assert is_dsn_multihost("postgresql://login:password@/db_placeholder?host=host1:5432&host=host2:5432")
+    assert is_dsn_multihost("postgresql://login:password@/db_placeholder?host=host1,host2&port=5432,5432")
     assert not is_dsn_multihost("postgresql://login:password@/db_placeholder?host=host1")
     assert not is_dsn_multihost("postgresql://login:password@host/db_placeholder")
+    assert not is_dsn_multihost("postgresql://login:password@/db_placeholder")
+
+
+def test_is_dsn_multihost_rejects_what_the_connection_factory_rejects() -> None:
+    with pytest.raises(sa_exc.ArgumentError):
+        is_dsn_multihost("postgresql://login:password@/db_placeholder?host=host1&host=host2")
