@@ -21,7 +21,6 @@ classifiers = [
 ]
 version = "0"
 dependencies = [
-    "tenacity>=8.4.1",
     # 2.0.31 is the first release that tolerates the __static_attributes__ and __firstlineno__
     # attributes Python 3.13 added; below it SQLAlchemy's TypingOnly check fails at import.
     # 2.0.20, not 2.0.18: advanced-alchemy requires it, so nothing here can exercise 2.0.18.

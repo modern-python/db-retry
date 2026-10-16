@@ -213,7 +213,6 @@ export DB_RETRY_RETRIES_NUMBER=5
 - Python 3.11+
 - SQLAlchemy with asyncio support
 - asyncpg PostgreSQL driver
-- tenacity for retry logic
 
 ## 📦 [PyPI](https://pypi.org/project/db-retry)
 

@@ -8,8 +8,8 @@ repository.
 `db-retry` is a library of retry, connection, and transaction helpers for PostgreSQL applications
 built on SQLAlchemy's asyncio extension and asyncpg; [`CONTEXT.md`](CONTEXT.md) opens with what it
 does and owns the vocabulary — read it before naming a concept in code, a test name, or an issue
-title. The words most easily got wrong here are the ones this package shares with PostgreSQL and
-with tenacity: what "retriable" covers, what a "retry" counts, and what "primary" does not mean.
+title. The words most easily got wrong here are the ones this package shares with PostgreSQL: what
+"retriable" covers, what a "retry" counts, and what "primary" does not mean.
 
 ## Commands
 

@@ -18,7 +18,7 @@ def _retriable_error() -> DBAPIError:
 
 
 def _record_backoff(monkeypatch: pytest.MonkeyPatch) -> list[float]:
-    """Replace the retryer's sleep with a recorder, so attempt counts cost no wall time."""
+    """Replace the retry loop's sleep with a recorder, so attempt counts cost no wall time."""
     waits: list[float] = []
 
     async def _record(delay: float) -> None:
@@ -119,17 +119,16 @@ async def test_the_default_attempt_count_is_re_read_on_every_call(monkeypatch: p
             await _always_fails()
         assert attempts == int(configured)
 
-    assert waits, "asyncio.sleep is no longer the retryer's sleep; this test would wait out real backoff"
+    assert waits, "asyncio.sleep is no longer the retry loop's sleep; this test would wait out real backoff"
 
 
 async def test_a_retry_never_re_runs_the_body_immediately(monkeypatch: pytest.MonkeyPatch) -> None:
     """INVARIANT: every retry is separated from the attempt before it by a non-zero wait.
 
-    Broken by dropping ``wait=tenacity.wait_exponential_jitter()`` from the retryer, or swapping it
-    for ``wait_none()`` -- a change that keeps every attempt-count assertion in this file green,
-    because the counts do not depend on the delay. Waiting is the reason to reach for tenacity at
-    all rather than a bare loop: both retriable classes are failures of an overloaded or unreachable
-    server, and re-running instantly turns one serialization conflict into a spin against the same
+    Broken by dropping the ``asyncio.sleep`` from the retry loop, or making ``_backoff`` return
+    ``0`` -- a change that keeps every attempt-count assertion in this file green, because the
+    counts do not depend on the delay. Both retriable classes are failures of an overloaded or
+    unreachable server, and re-running instantly turns one serialization conflict into a spin against the same
     row and one refused connection into a flood at a node that is already down. Tuning the curve --
     the initial delay, the base, how much jitter -- stays within the invariant; removing the wait
     does not.
@@ -208,3 +207,20 @@ async def test_a_connection_closed_while_pooled_is_retried_through_a_transaction
 
         assert await select_one() == 1
     assert attempts == 2  # noqa: PLR2004  # the closed connection, then a fresh one
+
+
+async def test_a_retriable_first_failure_waits_once_then_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
+    waits: typing.Final = _record_backoff(monkeypatch)
+    attempts = 0
+
+    @postgres_retry(retries=3)
+    async def _fails_once() -> int:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise _retriable_error()
+        return attempts
+
+    assert await _fails_once() == 2  # noqa: PLR2004  # the failed attempt, then the one that succeeds
+    assert len(waits) == 1
+    assert waits[0] > 0
