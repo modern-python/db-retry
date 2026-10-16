@@ -22,7 +22,7 @@ is safe, and the two come apart: `StatementCompletionUnknownError` (`40003`) is 
 
 **Attempt**:
 One call of the wrapped coroutine. `postgres_retry(retries=N)` bounds *attempts*, not retries — `N`
-goes to tenacity's `stop_after_attempt`, so `retries=1` runs the body once and never re-runs it,
+caps the calls of the body, so `retries=1` runs the body once and never re-runs it,
 and the `DB_RETRY_RETRIES_NUMBER` default of `3` allows two re-runs.
 _Avoid_: retry, as a count. The knob is spelled `retries` for callers and cannot be renamed without
 breaking them, but every number in this package counts attempts.
