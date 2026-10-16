@@ -41,6 +41,11 @@ def test_a_statement_of_unknown_outcome_is_never_retriable() -> None:
             _make_dbapi_error(asyncpg.ConnectionDoesNotExistError()), True, id="connection_does_not_exist_08003"
         ),
         pytest.param(_make_dbapi_error(asyncpg.PostgresError()), False, id="non_retriable_postgres_error"),
+        pytest.param(
+            _make_dbapi_error(asyncpg.InterfaceError("cannot perform operation: another operation is in progress")),
+            False,
+            id="interface_error_on_a_live_connection",
+        ),
         pytest.param(ValueError("not a db error"), False, id="bare_non_dbapi_exception"),
         pytest.param(asyncpg.SerializationError(), True, id="raw_serialization_error_40001"),
         pytest.param(asyncpg.PostgresConnectionError(), True, id="raw_postgres_connection_error_08000"),
@@ -50,6 +55,12 @@ def test_a_statement_of_unknown_outcome_is_never_retriable() -> None:
 )
 def test_is_retriable(exception: BaseException, expected: bool) -> None:
     assert is_retriable(exception) == expected
+
+
+def test_a_connection_sqlalchemy_invalidated_is_retriable() -> None:
+    orig = Exception("connection is closed")
+    orig.__cause__ = asyncpg.InterfaceError("cannot perform operation: connection is closed")
+    assert is_retriable(DBAPIError("SELECT 1", None, orig, connection_invalidated=True)) is True
 
 
 def test_is_retriable_rewrapped_cause() -> None:

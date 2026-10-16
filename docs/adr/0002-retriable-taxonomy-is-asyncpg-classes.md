@@ -11,3 +11,12 @@ silently, losing subclass coverage as it did; the rationale it was meant to hold
 the executed `INVARIANT:` docstring in `tests/test_retriable.py` that pins the boundary against
 `StatementCompletionUnknownError` (`40003`). Only a second axis the hierarchy does not encode, a
 per-error retry budget or a different backoff per code, is beyond what the tuple can carry.
+
+Amended by #68: SQLAlchemy's disconnect flag is that second axis. A pooled connection that died
+while idle fails its next use with asyncpg's `InterfaceError: connection is closed`, which has no
+SQLSTATE and shares its class with deterministic misuse such as "another operation is in progress"
+or a wrong argument count, so no class in the hierarchy names it. SQLAlchemy's asyncpg dialect
+already decides it, from `is_closed()` on the driver connection, and exposes the answer as
+`DBAPIError.connection_invalidated`; `_is_retriable_link` accepts that flag before the
+`isinstance`. A raw asyncpg error carries no such flag and stays class-only, because there the
+closed case could be told apart only by matching message text.
