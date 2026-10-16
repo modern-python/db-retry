@@ -42,14 +42,31 @@ def postgres_retry(
     def decorator(f: _Func[P, T]) -> _Func[P, T]:
         @functools.wraps(f)
         async def wrapped_method(*args: P.args, **kwargs: P.kwargs) -> T:
+            try:
+                return await f(*args, **kwargs)
+            except Exception as exception:
+                attempts = retries if retries is not None else settings.get_retries_number()
+                if attempts <= 1 or not is_retriable(exception):
+                    _log_and_decide(exception)
+                    raise
+                first_error = exception
+
+            @functools.wraps(f)
+            async def replay_first_error_then_call(*args: P.args, **kwargs: P.kwargs) -> T:
+                nonlocal first_error
+                if first_error is not None:
+                    error, first_error = first_error, None
+                    raise error
+                return await f(*args, **kwargs)
+
             retryer = tenacity.AsyncRetrying(
-                stop=tenacity.stop_after_attempt(retries if retries is not None else settings.get_retries_number()),
+                stop=tenacity.stop_after_attempt(attempts),
                 wait=tenacity.wait_exponential_jitter(),
                 retry=tenacity.retry_if_exception(_log_and_decide),
                 reraise=True,
                 before=tenacity.before_log(logger, logging.DEBUG),
             )
-            return await retryer(f, *args, **kwargs)
+            return await retryer(replay_first_error_then_call, *args, **kwargs)
 
         return wrapped_method
 

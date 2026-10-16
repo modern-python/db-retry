@@ -1,9 +1,11 @@
 import asyncio
 import typing
+from unittest import mock
 
 import asyncpg
 import pytest
 import sqlalchemy
+import tenacity
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext import asyncio as sa_async
 
@@ -208,3 +210,39 @@ async def test_a_connection_closed_while_pooled_is_retried_through_a_transaction
 
         assert await select_one() == 1
     assert attempts == 2  # noqa: PLR2004  # the closed connection, then a fresh one
+
+
+async def test_a_first_attempt_that_succeeds_never_enters_tenacity(monkeypatch: pytest.MonkeyPatch) -> None:
+    """INVARIANT: the success path is one direct call; tenacity is built only after a retriable error.
+
+    Broken by going back to building ``tenacity.AsyncRetrying`` before the first attempt. Every
+    behavioural test still passes then, because the retryer is correct, only slow: its attempt loop
+    costs about 20 µs per call, more than ``pool_pre_ping`` costs against a local database, and
+    almost every call succeeds first time (#71).
+    """
+    retryer_class: typing.Final = mock.Mock(wraps=tenacity.AsyncRetrying)
+    monkeypatch.setattr(tenacity, "AsyncRetrying", retryer_class)
+
+    @postgres_retry
+    async def _succeeds() -> str:
+        return "ok"
+
+    assert await _succeeds() == "ok"
+    retryer_class.assert_not_called()
+
+
+async def test_a_retriable_first_failure_waits_once_then_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
+    waits: typing.Final = _record_backoff(monkeypatch)
+    attempts = 0
+
+    @postgres_retry(retries=3)
+    async def _fails_once() -> int:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise _retriable_error()
+        return attempts
+
+    assert await _fails_once() == 2  # noqa: PLR2004  # the failed attempt, then the one that succeeds
+    assert len(waits) == 1
+    assert waits[0] > 0
