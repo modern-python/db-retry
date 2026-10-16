@@ -22,7 +22,7 @@ Retry helpers for PostgreSQL and SQLAlchemy, plus multi-host connection and tran
 
 ## Features
 
-- `postgres_retry`: retries a coroutine on asyncpg serialization and connection errors.
+- `postgres_retry`: retries a coroutine on serialization failures and lost connections.
 - `build_connection_factory`: multi-host asyncpg connections with failover on timeout.
 - `build_db_dsn` and `is_dsn_multihost`: DSN parsing and manipulation.
 - `Transaction`: transaction context manager that rolls back and closes the session on exit.
@@ -45,14 +45,14 @@ pip install db-retry
 
 ### 1. Database operations with automatic retry
 
-Retry a coroutine on asyncpg serialization or connection errors:
+Retry a coroutine on serialization failures and lost connections. The retried coroutine must open its own transaction with `Transaction`, so that a failed attempt is rolled back before the next one starts. If it reuses a session that is still inside the failed transaction, the next attempt raises `PendingRollbackError` and the retry gives up.
 
 ```python
 import asyncio
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from db_retry import postgres_retry
+from db_retry import Transaction, postgres_retry
 
 
 class Base(DeclarativeBase):
@@ -69,8 +69,9 @@ class User(Base):
 
 # Total attempts come from DB_RETRY_RETRIES_NUMBER (default 3: the first call plus 2 retries)
 @postgres_retry
-async def get_user_by_email(session: AsyncSession, email: str) -> User:
-    return await session.scalar(sa.select(User).where(User.email == email))
+async def get_user_by_email(session: AsyncSession, email: str) -> User | None:
+    async with Transaction(session=session):
+        return await session.scalar(sa.select(User).where(User.email == email))
 
 
 async def main():
@@ -195,6 +196,8 @@ export DB_RETRY_RETRIES_NUMBER=5
 ### Retry decorator
 - `@postgres_retry` - Decorator for async functions that should retry on database errors (total attempts, first call plus retries, from `DB_RETRY_RETRIES_NUMBER`)
 - `@postgres_retry(retries=N)` - Override the total attempts (first call plus retries) per callsite
+- Retries a serialization failure (`40001`), a connection error (class `08`), and any `DBAPIError` that SQLAlchemy marks with `connection_invalidated`. The last one covers asyncpg's `InterfaceError: connection is closed` on a pooled connection that died while idle, which is what `pool_pre_ping=True` otherwise catches
+- The retried coroutine must open its own `Transaction`; a retry on a session left in a failed transaction raises `PendingRollbackError`
 - Retries also fire when the retriable `asyncpg` error is wrapped by [`advanced-alchemy`](https://github.com/litestar-org/advanced-alchemy)'s `wrap_sqlalchemy_exception()` (i.e. surfaced as `RepositoryError` / `IntegrityError`); the handler walks the `__cause__` / `__context__` chain.
 
 ### Connection utilities
