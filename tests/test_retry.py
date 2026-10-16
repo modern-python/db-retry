@@ -171,27 +171,10 @@ async def test_a_connect_time_connection_error_is_retried(monkeypatch: pytest.Mo
     assert attempts == expected_attempts
 
 
+@pytest.mark.usefixtures("lost_pooled_connection")
 async def test_a_connection_closed_while_pooled_is_retried_through_a_transaction(
     async_engine: sa_async.AsyncEngine, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    async with async_engine.connect() as connection:
-        pooled: typing.Final = (await connection.get_raw_connection()).driver_connection
-        assert pooled is not None
-        pid: typing.Final = await connection.scalar(sqlalchemy.text("SELECT pg_backend_pid()"))
-    closed: typing.Final = asyncio.Event()
-
-    def _on_close(_: asyncpg.Connection) -> None:
-        closed.set()
-
-    pooled.add_termination_listener(_on_close)
-    killer: typing.Final = await asyncpg.connect(
-        async_engine.url.set(drivername="postgresql").render_as_string(hide_password=False)
-    )
-    try:
-        await killer.execute("SELECT pg_terminate_backend($1)", pid)
-    finally:
-        await killer.close()
-    await asyncio.wait_for(closed.wait(), timeout=5)
     _record_backoff(monkeypatch)
     attempts = 0
 
@@ -207,6 +190,32 @@ async def test_a_connection_closed_while_pooled_is_retried_through_a_transaction
 
         assert await select_one() == 1
     assert attempts == 2  # noqa: PLR2004  # the closed connection, then a fresh one
+
+
+async def test_a_connection_lost_after_the_transaction_is_retried(
+    async_engine: sa_async.AsyncEngine,
+    kill_idle_connection: typing.Callable[[], typing.Awaitable[None]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _record_backoff(monkeypatch)
+    attempts = 0
+
+    async with sa_async.AsyncSession(async_engine) as session:
+        transaction: typing.Final = Transaction(session=session)
+
+        @postgres_retry(retries=2)
+        async def read_after_the_block() -> int | None:
+            nonlocal attempts
+            attempts += 1
+            async with transaction:
+                await session.scalar(sqlalchemy.text("SELECT 1"))
+                await transaction.commit()
+            if attempts == 1:
+                await kill_idle_connection()
+            return await session.scalar(sqlalchemy.text("SELECT 2"))
+
+        assert await read_after_the_block() == 2  # noqa: PLR2004
+    assert attempts == 2  # noqa: PLR2004
 
 
 async def test_a_retriable_first_failure_waits_once_then_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:

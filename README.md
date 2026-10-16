@@ -45,7 +45,7 @@ pip install db-retry
 
 ### 1. Database operations with automatic retry
 
-Retry a coroutine on serialization failures and lost connections. Either error ends the whole Postgres transaction, so the retried coroutine has to own its transaction from start to finish: open it with `Transaction`, as below, or work on a fresh session it creates itself. A coroutine that runs on a session someone else began cannot be retried. Postgres has already discarded the statements that ran before it, and SQLAlchemy refuses the next attempt with `PendingRollbackError` instead of committing part of the work.
+Retry a coroutine on serialization failures and lost connections. Either error ends the whole Postgres transaction, so the retried coroutine has to own its transaction from start to finish: open it with `Transaction`, as below, or work on a fresh session it creates itself. A coroutine that runs on a session someone else began cannot be retried. Postgres has already discarded the statements that ran before it, and SQLAlchemy refuses the next attempt with `PendingRollbackError` instead of committing part of the work. One case is recovered for you: if the connection is lost on a query or flush that runs after the `Transaction` block, entering `Transaction` on the next attempt rolls back the dead transaction and starts on a fresh connection.
 
 ```python
 import asyncio
@@ -212,7 +212,7 @@ export DB_RETRY_RETRIES_NUMBER=5
 - `is_dsn_multihost(db_dsn)` - Checks if a DSN contains multiple hosts
 
 ### Transaction helper
-- `Transaction(session, isolation_level=None)` - Context manager for transaction handling; on exit, rolls back if still in a transaction, then closes the session
+- `Transaction(session, isolation_level=None)` - Context manager for transaction handling; on entry, rolls back a transaction that can no longer continue (a failed flush or a lost connection), otherwise joins the session's open transaction or begins one; on exit, rolls back if still in a transaction, then closes the session
 
 ## Requirements
 
