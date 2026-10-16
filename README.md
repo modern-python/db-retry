@@ -158,6 +158,12 @@ class CreateEventUseCase:
             return event
 ```
 
+These projects use this use-case shape in full, with `pool_pre_ping` off and `postgres_retry` handling connections that died while idle in the pool:
+
+- [fastapi-sqlalchemy-template](https://github.com/modern-python/fastapi-sqlalchemy-template/tree/main/app/use_cases)
+- [litestar-sqlalchemy-template](https://github.com/modern-python/litestar-sqlalchemy-template/tree/main/app/use_cases)
+- [chat-app](https://github.com/modern-python/chat-app/tree/main/app/use_cases)
+
 ### 4. Serializable transactions
 
 Use the serializable isolation level to prevent race conditions:
