@@ -14,7 +14,7 @@ title. The words most easily got wrong here are the ones this package shares wit
 ## Commands
 
 `just` (task runner) and `uv` (package manager). The [`justfile`](justfile) is the source of truth:
-run `just --list`, or read it. The one thing it does not say: `just test` is Docker-only, so without a
+`just --list`, or read it. The one thing it does not say: `just test` is Docker-only, so without a
 Docker daemon, point `DB_DSN` at any reachable PostgreSQL and run `uv run pytest` directly.
 
 ## Architecture
