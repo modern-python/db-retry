@@ -15,20 +15,20 @@ package uses it.
 A PostgreSQL failure that can be re-run unchanged, because it says nothing about the request being
 wrong: a serialization failure (`40001`) or a lost connection (class `08`, or a `DBAPIError`
 SQLAlchemy marked `connection_invalidated`). `RETRIABLE_ASYNCPG_ERRORS` and that flag are the whole
-of it — an error outside them is not retriable, however temporary it looks.
-_Avoid_: transient error — it describes how long the failure lasts, not whether repeating the work
+of it: an error outside them is not retriable, however temporary it looks.
+_Avoid_: transient error. It describes how long the failure lasts, not whether repeating the work
 is safe, and the two come apart: `StatementCompletionUnknownError` (`40003`) is as short-lived as
 `40001` and must never be retried.
 
 **Attempt**:
-One call of the wrapped coroutine. `postgres_retry(retries=N)` bounds *attempts*, not retries — `N`
+One call of the wrapped coroutine. `postgres_retry(retries=N)` bounds *attempts*, not retries: `N`
 caps the calls of the body, so `retries=1` runs the body once and never re-runs it,
 and the `DB_RETRY_RETRIES_NUMBER` default of `3` allows two re-runs.
 _Avoid_: retry, as a count. The knob is spelled `retries` for callers and cannot be renamed without
 breaking them, but every number in this package counts attempts.
 
 **Primary host**:
-The host a connection's first connect attempt is aimed at — which, for a multi-host DSN, is
+The host a connection's first connect attempt is aimed at. For a multi-host DSN that is
 *every* host, in an order shuffled afresh for each connection, handed to asyncpg to walk itself.
 "Primary" is a position in the two-stage connect (one bulk attempt, then host-by-host through
 `failover`), not a PostgreSQL replication role; replication role is `target_session_attrs`, where

@@ -227,4 +227,4 @@ export DB_RETRY_RETRIES_NUMBER=5
 ## Part of `modern-python`
 
 Browse the full list of templates and libraries in
-[`modern-python`](https://github.com/modern-python) — see the org profile for the categorized index.
+[`modern-python`](https://github.com/modern-python); see the org profile for the categorized index.
