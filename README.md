@@ -220,9 +220,10 @@ export DB_RETRY_RETRIES_NUMBER=5
 - SQLAlchemy with asyncio support
 - asyncpg PostgreSQL driver
 
-## 📦 [PyPI](https://pypi.org/project/db-retry)
+## Links
 
-## 📝 [License](https://github.com/modern-python/db-retry/blob/main/LICENSE)
+- [PyPI](https://pypi.org/project/db-retry)
+- [License](https://github.com/modern-python/db-retry/blob/main/LICENSE)
 
 ## Part of `modern-python`
 
