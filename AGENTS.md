@@ -7,14 +7,14 @@ repository.
 
 `db-retry` is a library of retry, connection, and transaction helpers for PostgreSQL applications
 built on SQLAlchemy's asyncio extension and asyncpg; [`CONTEXT.md`](CONTEXT.md) opens with what it
-does and owns the vocabulary — read it before naming a concept in code, a test name, or an issue
+does and owns the vocabulary. Read it before naming a concept in code, a test name, or an issue
 title. The words most easily got wrong here are the ones this package shares with PostgreSQL: what
 "retriable" covers, what a "retry" counts, and what "primary" does not mean.
 
 ## Commands
 
-`just` (task runner) and `uv` (package manager). The [`justfile`](justfile) is the source of truth —
-`just --list`, or read it. The one thing it does not say: `just test` is Docker-only, so without a
+`just` (task runner) and `uv` (package manager). The [`justfile`](justfile) is the source of truth:
+run `just --list`, or read it. The one thing it does not say: `just test` is Docker-only, so without a
 Docker daemon, point `DB_DSN` at any reachable PostgreSQL and run `uv run pytest` directly.
 
 ## Architecture
