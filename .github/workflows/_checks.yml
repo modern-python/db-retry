@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # SQLAlchemy's cyext does not declare free-thread safety (fixed upstream for 2.1): use the pure-Python fallback on the t build.
-      DISABLE_SQLALCHEMY_CEXT_RUNTIME: ${{ matrix.python-version == '3.14t' && '1' || '' }}
+      DISABLE_SQLALCHEMY_CEXT_RUNTIME: ${{ endsWith(matrix.python-version, 't') && '1' || '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -31,6 +31,8 @@ jobs:
           - "3.13"
           - "3.14"
           - "3.14t"
+          - "3.15"
+          - "3.15t"
     services:
       postgres:
         image: postgres:latest
@@ -53,7 +55,7 @@ jobs:
       - run: uv python pin ${{ matrix.python-version }}
       - run: just install
       - name: Confirm the interpreter is free-threaded
-        if: matrix.python-version == '3.14t'
+        if: endsWith(matrix.python-version, 't')
         run: uv run --no-sync python -c "import sys, db_retry; assert not sys._is_gil_enabled(), 'GIL is enabled on a t-build'"
       - run: just test-ci
         env:
@@ -70,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # SQLAlchemy's cyext does not declare free-thread safety (fixed upstream for 2.1): use the pure-Python fallback on the t build.
-      DISABLE_SQLALCHEMY_CEXT_RUNTIME: ${{ matrix.python-version == '3.14t' && '1' || '' }}
+      DISABLE_SQLALCHEMY_CEXT_RUNTIME: ${{ endsWith(matrix.python-version, 't') && '1' || '' }}
     strategy:
       fail-fast: false
       matrix:
