@@ -28,12 +28,13 @@ dependencies = [
     "sqlalchemy[asyncio]>=2.0.20; python_version < '3.13'",
     "sqlalchemy[asyncio]>=2.0.31; python_version >= '3.13'",
     # asyncpg declares requires-python >=3.8 throughout but ships no cp312 wheel before 0.29, no
-    # cp313 wheel before 0.30 and no cp314 wheel before 0.31, so a resolver picks an sdist that
-    # cannot build rather than conflicting.
+    # cp313 wheel before 0.30, no cp314 wheel before 0.31 and no cp315 wheel before 0.32, so a
+    # resolver picks an sdist that cannot build rather than conflicting.
     "asyncpg>=0.28; python_version < '3.12'",
     "asyncpg>=0.29; python_version == '3.12'",
     "asyncpg>=0.30; python_version == '3.13'",
-    "asyncpg>=0.31; python_version >= '3.14'",
+    "asyncpg>=0.31; python_version == '3.14'",
+    "asyncpg>=0.32; python_version >= '3.15'",
 ]
 
 [project.urls]
