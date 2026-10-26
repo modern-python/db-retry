@@ -15,6 +15,7 @@ def _make_dbapi_error(cause: BaseException) -> DBAPIError:
 
 def test_retriable_asyncpg_errors_contains_expected_classes() -> None:
     assert asyncpg.SerializationError in RETRIABLE_ASYNCPG_ERRORS
+    assert asyncpg.DeadlockDetectedError in RETRIABLE_ASYNCPG_ERRORS
     assert asyncpg.PostgresConnectionError in RETRIABLE_ASYNCPG_ERRORS
 
 
@@ -36,11 +37,13 @@ def test_a_statement_of_unknown_outcome_is_never_retriable() -> None:
     ("exception", "expected"),
     [
         pytest.param(_make_dbapi_error(asyncpg.SerializationError()), True, id="serialization_error_40001"),
+        pytest.param(_make_dbapi_error(asyncpg.DeadlockDetectedError()), True, id="deadlock_detected_40P01"),
         pytest.param(_make_dbapi_error(asyncpg.PostgresConnectionError()), True, id="postgres_connection_error_08000"),
         pytest.param(
             _make_dbapi_error(asyncpg.ConnectionDoesNotExistError()), True, id="connection_does_not_exist_08003"
         ),
         pytest.param(_make_dbapi_error(asyncpg.PostgresError()), False, id="non_retriable_postgres_error"),
+        pytest.param(_make_dbapi_error(asyncpg.ExclusionViolationError()), False, id="exclusion_violation_23P01"),
         pytest.param(
             _make_dbapi_error(asyncpg.InterfaceError("cannot perform operation: another operation is in progress")),
             False,
@@ -48,6 +51,7 @@ def test_a_statement_of_unknown_outcome_is_never_retriable() -> None:
         ),
         pytest.param(ValueError("not a db error"), False, id="bare_non_dbapi_exception"),
         pytest.param(asyncpg.SerializationError(), True, id="raw_serialization_error_40001"),
+        pytest.param(asyncpg.DeadlockDetectedError(), True, id="raw_deadlock_detected_40P01"),
         pytest.param(asyncpg.PostgresConnectionError(), True, id="raw_postgres_connection_error_08000"),
         pytest.param(asyncpg.StatementCompletionUnknownError(), False, id="raw_statement_completion_unknown_40003"),
         pytest.param(asyncpg.PostgresError(), False, id="raw_non_retriable_postgres_error"),

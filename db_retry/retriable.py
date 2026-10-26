@@ -2,7 +2,11 @@ import asyncpg
 from sqlalchemy.exc import DBAPIError
 
 
-RETRIABLE_ASYNCPG_ERRORS = (asyncpg.SerializationError, asyncpg.PostgresConnectionError)
+RETRIABLE_ASYNCPG_ERRORS = (
+    asyncpg.SerializationError,
+    asyncpg.DeadlockDetectedError,
+    asyncpg.PostgresConnectionError,
+)
 
 
 def _is_retriable_link(exception: BaseException) -> bool:
