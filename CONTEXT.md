@@ -13,12 +13,13 @@ package uses it.
 
 **Retriable error**:
 A PostgreSQL failure that can be re-run unchanged, because it says nothing about the request being
-wrong: a serialization failure (`40001`) or a lost connection (class `08`, or a `DBAPIError`
-SQLAlchemy marked `connection_invalidated`). `RETRIABLE_ASYNCPG_ERRORS` and that flag are the whole
-of it: an error outside them is not retriable, however temporary it looks.
+wrong: a serialization failure (`40001`), a deadlock Postgres broke by aborting this transaction
+(`40P01`), or a lost connection (class `08`, or a `DBAPIError` SQLAlchemy marked
+`connection_invalidated`). `RETRIABLE_ASYNCPG_ERRORS` and that flag are the whole of it: an error
+outside them is not retriable, however temporary it looks.
 _Avoid_: transient error. It describes how long the failure lasts, not whether repeating the work
 is safe, and the two come apart: `StatementCompletionUnknownError` (`40003`) is as short-lived as
-`40001` and must never be retried.
+`40001` and `40P01` and must never be retried.
 
 **Attempt**:
 One call of the wrapped coroutine. `postgres_retry(retries=N)` bounds *attempts*, not retries: `N`

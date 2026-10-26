@@ -32,6 +32,7 @@ def _record_backoff(monkeypatch: pytest.MonkeyPatch) -> list[float]:
     ("error_code", "expected_calls"),
     [
         ("40001", 2),  # SerializationError - backoff triggered, 1 retry
+        ("40P01", 2),  # DeadlockDetectedError - backoff triggered, 1 retry
         ("40002", 1),  # TransactionIntegrityConstraintViolationError - backoff not triggered
     ],
 )
@@ -127,9 +128,9 @@ async def test_a_retry_never_re_runs_the_body_immediately(monkeypatch: pytest.Mo
 
     Broken by dropping the ``asyncio.sleep`` from the retry loop, or making ``_backoff`` return
     ``0`` -- a change that keeps every attempt-count assertion in this file green, because the
-    counts do not depend on the delay. Both retriable classes are failures of an overloaded or
-    unreachable server, and re-running instantly turns one serialization conflict into a spin against the same
-    row and one refused connection into a flood at a node that is already down. Tuning the curve --
+    counts do not depend on the delay. Every retriable class is lock contention or an unreachable server,
+    and re-running instantly turns one serialization conflict or deadlock into a spin against the same
+    rows and one refused connection into a flood at a node that is already down. Tuning the curve --
     the initial delay, the base, how much jitter -- stays within the invariant; removing the wait
     does not.
     """
@@ -233,3 +234,41 @@ async def test_a_retriable_first_failure_waits_once_then_succeeds(monkeypatch: p
     assert await _fails_once() == 2  # noqa: PLR2004  # the failed attempt, then the one that succeeds
     assert len(waits) == 1
     assert waits[0] > 0
+
+
+async def test_a_deadlock_victim_is_rolled_back_and_re_run_through_a_transaction(
+    async_engine: sa_async.AsyncEngine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _record_backoff(monkeypatch)
+    async with async_engine.begin() as connection:
+        await connection.execute(sqlalchemy.text("CREATE TABLE deadlock_victim_writes (attempt INT NOT NULL)"))
+    attempts = 0
+
+    try:
+        async with sa_async.AsyncSession(async_engine) as session:
+            transaction: typing.Final = Transaction(session=session)
+
+            @postgres_retry(retries=2)
+            async def write_then_deadlock_once() -> None:
+                nonlocal attempts
+                attempts += 1
+                async with transaction:
+                    await session.execute(
+                        sqlalchemy.text("INSERT INTO deadlock_victim_writes VALUES (:attempt)"), {"attempt": attempts}
+                    )
+                    if attempts == 1:
+                        await session.execute(sqlalchemy.text("DO $$ BEGIN RAISE SQLSTATE '40P01'; END $$"))
+                    await transaction.commit()
+
+            await write_then_deadlock_once()
+
+        async with async_engine.connect() as connection:
+            written: typing.Final = (
+                await connection.scalars(sqlalchemy.text("SELECT attempt FROM deadlock_victim_writes"))
+            ).all()
+    finally:
+        async with async_engine.begin() as connection:
+            await connection.execute(sqlalchemy.text("DROP TABLE deadlock_victim_writes"))
+
+    assert attempts == 2  # noqa: PLR2004
+    assert written == [2]

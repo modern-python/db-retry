@@ -22,7 +22,7 @@ Retry helpers for PostgreSQL and SQLAlchemy, plus multi-host connection and tran
 
 ## Features
 
-- `postgres_retry`: retries a coroutine on serialization failures and lost connections.
+- `postgres_retry`: retries a coroutine on serialization failures, deadlocks, and lost connections.
 - `build_connection_factory`: multi-host asyncpg connections with failover on timeout.
 - `build_db_dsn` and `is_dsn_multihost`: DSN parsing and manipulation.
 - `Transaction`: transaction context manager that rolls back and closes the session on exit.
@@ -45,7 +45,7 @@ pip install db-retry
 
 ### 1. Database operations with automatic retry
 
-Retry a coroutine on serialization failures and lost connections. Either error ends the whole Postgres transaction, so the retried coroutine has to own its transaction from start to finish: open it with `Transaction`, as below, or work on a fresh session it creates itself. A coroutine that runs on a session someone else began cannot be retried. Postgres has already discarded the statements that ran before it, and SQLAlchemy refuses the next attempt with `PendingRollbackError` instead of committing part of the work. One case is recovered for you: if the connection is lost on a query or flush that runs after the `Transaction` block, entering `Transaction` on the next attempt rolls back the dead transaction and starts on a fresh connection.
+Retry a coroutine on serialization failures, deadlocks, and lost connections. Each of these errors ends the whole Postgres transaction, so the retried coroutine has to own its transaction from start to finish: open it with `Transaction`, as below, or work on a fresh session it creates itself. A coroutine that runs on a session someone else began cannot be retried. Postgres has already discarded the statements that ran before it, and SQLAlchemy refuses the next attempt with `PendingRollbackError` instead of committing part of the work. One case is recovered for you: if the connection is lost on a query or flush that runs after the `Transaction` block, entering `Transaction` on the next attempt rolls back the dead transaction and starts on a fresh connection.
 
 ```python
 import asyncio
@@ -77,7 +77,7 @@ async def get_user_by_email(session: AsyncSession, email: str) -> User | None:
 async def main():
     engine = create_async_engine("postgresql+asyncpg://user:pass@localhost/mydb")
     async with AsyncSession(engine) as session:
-        # Automatically retries on connection failures or serialization errors
+        # Automatically retries on connection failures, serialization errors, or deadlocks
         user = await get_user_by_email(session, "john.doe@example.com")
         if user:
             print(f"Found user: {user.name}")
@@ -202,7 +202,7 @@ export DB_RETRY_RETRIES_NUMBER=5
 ### Retry decorator
 - `@postgres_retry` - Decorator for async functions that should retry on database errors (total attempts, first call plus retries, from `DB_RETRY_RETRIES_NUMBER`)
 - `@postgres_retry(retries=N)` - Override the total attempts (first call plus retries) per callsite
-- Retries a serialization failure (`40001`), a connection error (class `08`), and any `DBAPIError` that SQLAlchemy marks with `connection_invalidated`. The last one covers asyncpg's `InterfaceError: connection is closed` on a pooled connection that died while idle, which is what `pool_pre_ping=True` otherwise catches
+- Retries a serialization failure (`40001`), a detected deadlock (`40P01`), a connection error (class `08`), and any `DBAPIError` that SQLAlchemy marks with `connection_invalidated`. The last one covers asyncpg's `InterfaceError: connection is closed` on a pooled connection that died while idle, which is what `pool_pre_ping=True` otherwise catches
 - The retried coroutine must own its whole transaction, through `Transaction` or a fresh session; on a session another caller began, the next attempt raises `PendingRollbackError`
 - Retries also fire when the retriable `asyncpg` error is wrapped by [`advanced-alchemy`](https://github.com/litestar-org/advanced-alchemy)'s `wrap_sqlalchemy_exception()` (i.e. surfaced as `RepositoryError` / `IntegrityError`); the handler walks the `__cause__` / `__context__` chain.
 
