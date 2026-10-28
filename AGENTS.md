@@ -17,6 +17,10 @@ title. The words most easily got wrong here are the ones this package shares wit
 `just --list`, or read it. The one thing it does not say: `just test` is Docker-only, so without a
 Docker daemon, point `DB_DSN` at any reachable PostgreSQL and run `uv run pytest` directly.
 
+`just test-dr` runs the failover drills in `tests_dr/` (primary killed, primary paused), each on a
+fresh cluster from `docker-compose.dr.yml`: a primary, a replica that gets promoted, and a standby
+that stays read-only. It needs the Docker socket, takes about a minute, and is not in CI.
+
 ## Architecture
 
 Every module under `db_retry/` is named for what it does and is short enough to read whole. Read
