@@ -17,6 +17,8 @@ if typing.TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_COMMAND_TIMEOUT_SECONDS: typing.Final = 60.0
+
 
 @dataclasses.dataclass(kw_only=True, frozen=True, slots=True)
 class ConnectionPlan:
@@ -72,7 +74,7 @@ def build_connection_factory(
     url: sqlalchemy.URL,
     timeout: float,
     *,
-    command_timeout: float | None = None,
+    command_timeout: float | None = DEFAULT_COMMAND_TIMEOUT_SECONDS,
 ) -> typing.Callable[[], typing.Awaitable["ConnectionType"]]:
     plan: typing.Final = build_connection_plan(url, command_timeout)
 

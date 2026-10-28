@@ -126,3 +126,12 @@ async def test_command_timeout_reaches_asyncpg(
     await factory()
 
     assert connect.call_args.kwargs.get("command_timeout") == expected
+
+
+async def test_command_timeout_defaults_to_a_minute(monkeypatch: pytest.MonkeyPatch) -> None:
+    connect: typing.Final = mock.AsyncMock()
+    monkeypatch.setattr("asyncpg.connect", connect)
+
+    await build_connection_factory(url=sqlalchemy.make_url("postgresql+asyncpg://user:password@host/db"), timeout=1.0)()
+
+    assert connect.call_args.kwargs["command_timeout"] == 60.0  # noqa: PLR2004

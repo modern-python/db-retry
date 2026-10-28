@@ -118,7 +118,7 @@ connection_factory = build_connection_factory(
 engine = create_async_engine(dsn, async_creator=connection_factory)
 ```
 
-`timeout` bounds only the connect. Statements have no bound unless you set `command_timeout`, either as the keyword or as `command_timeout` in the DSN query (the DSN value wins). Without one, a statement on a pooled connection to a primary that stops answering, for example a frozen VM or a network partition that drops packets, waits until TCP keepalive gives up, which can take hours. With one, asyncpg raises `TimeoutError` and the next connection goes to the new primary. `postgres_retry` does not retry that `TimeoutError`, because the statement may have run. Set it whenever writes must survive a failover, and pick a value above your slowest statement.
+`timeout` bounds the connect and `command_timeout` bounds each statement. `command_timeout` defaults to 60 seconds; a `command_timeout` in the DSN query wins over the keyword, and `command_timeout=None` turns the bound off. Without a bound, a statement on a pooled connection to a primary that stops answering, for example a frozen VM or a network partition that drops packets, waits until TCP keepalive gives up, which can take hours. With one, asyncpg raises `TimeoutError` and the next connection goes to the new primary. `postgres_retry` does not retry that `TimeoutError`, because the statement may have run. Raise the value, or set it to `None`, for engines that run statements longer than a minute, such as migrations or reports.
 
 ### 3. Transaction management
 
@@ -210,7 +210,7 @@ export DB_RETRY_RETRIES_NUMBER=5
 - Retries also fire when the retriable `asyncpg` error is wrapped by [`advanced-alchemy`](https://github.com/litestar-org/advanced-alchemy)'s `wrap_sqlalchemy_exception()` (i.e. surfaced as `RepositoryError` / `IntegrityError`); the handler walks the `__cause__` / `__context__` chain.
 
 ### Connection utilities
-- `build_connection_factory(url, timeout, *, command_timeout=None)` - Creates a connection factory for multi-host setups; `timeout` bounds the connect, `command_timeout` bounds each statement (off by default; a `command_timeout` in the DSN wins)
+- `build_connection_factory(url, timeout, *, command_timeout=60.0)` - Creates a connection factory for multi-host setups; `timeout` bounds the connect, `command_timeout` bounds each statement (`None` turns it off; a `command_timeout` in the DSN wins)
 - `build_db_dsn(db_dsn, database_name, use_replica=False, drivername="postgresql")` - Builds a DSN with the given database name and driver, and sets `target_session_attrs` to `read-write`, or to `prefer-standby` when `use_replica=True`
 - `is_dsn_multihost(db_dsn)` - Checks if a DSN contains multiple hosts
 
