@@ -1,0 +1,55 @@
+name: db-retry-dr
+
+x-standby: &standby
+  image: postgres:17
+  user: postgres
+  entrypoint: ["bash", "/replica-entrypoint.sh"]
+  environment:
+    - PGPASSWORD=dr
+  volumes:
+    - ./tests_dr/replica-entrypoint.sh:/replica-entrypoint.sh:ro
+  depends_on:
+    pg-primary:
+      condition: service_healthy
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U dr -d dr"]
+    interval: 1s
+    timeout: 3s
+    retries: 60
+
+services:
+  dr:
+    build:
+      context: .
+      dockerfile: ./tests_dr/Dockerfile
+    user: root
+    volumes:
+      - .:/code
+      - /code/.venv
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      pg-replica:
+        condition: service_healthy
+      pg-standby:
+        condition: service_healthy
+    environment:
+      - DB_DSN=postgresql://dr:dr@/placeholder?host=pg-primary:5432&host=pg-standby:5432&host=pg-replica:5432
+
+  pg-primary:
+    image: postgres:17
+    container_name: db-retry-dr-primary
+    command: ["postgres", "-c", "wal_keep_size=256MB"]
+    environment:
+      - POSTGRES_USER=dr
+      - POSTGRES_PASSWORD=dr
+      - POSTGRES_DB=dr
+    volumes:
+      - ./tests_dr/primary-init.sh:/docker-entrypoint-initdb.d/primary-init.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U dr -d dr"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+  pg-replica: *standby
+  pg-standby: *standby
