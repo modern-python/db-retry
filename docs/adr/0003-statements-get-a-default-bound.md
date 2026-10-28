@@ -17,3 +17,8 @@ The cost is a behaviour change. A statement that runs longer than 60 seconds now
 `TimeoutError`, and `postgres_retry` does not retry it, because the statement may have completed
 (see [ADR 0002](0002-retriable-taxonomy-is-asyncpg-classes.md)). Engines that run migrations or
 long reports must raise the keyword or pass `None`.
+
+The bound needs asyncpg 0.32 or newer, which is now the floor. On 0.30 and 0.31 the statement times
+out, but SQLAlchemy then discards the connection through asyncpg's `close()`, which waits with no
+bound for the server to acknowledge the cancel. A frozen primary never does, so the caller hangs
+there instead.
