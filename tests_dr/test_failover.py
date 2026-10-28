@@ -121,7 +121,10 @@ async def _landed_hosts(url: sa.URL) -> collections.Counter[str]:
 
 def _engine(url: sa.URL) -> sa_async.AsyncEngine:
     return sa_async.create_async_engine(
-        url, async_creator=build_connection_factory(url=url, timeout=CONNECT_TIMEOUT_SECONDS)
+        url,
+        async_creator=build_connection_factory(
+            url=url, timeout=CONNECT_TIMEOUT_SECONDS, command_timeout=COMMAND_TIMEOUT_SECONDS
+        ),
     )
 
 
@@ -130,9 +133,8 @@ async def test_writes_reach_promoted_replica(
     fail_primary: typing.Callable[[], typing.Awaitable[None]], caplog: pytest.LogCaptureFixture
 ) -> None:
     caplog.set_level(logging.WARNING, logger="db_retry.connections")
-    dsn = f"{DB_DSN}&command_timeout={COMMAND_TIMEOUT_SECONDS}"
-    writes_url = build_db_dsn(dsn, DATABASE, drivername=DRIVER)
-    reads_url = build_db_dsn(dsn, DATABASE, use_replica=True, drivername=DRIVER)
+    writes_url = build_db_dsn(DB_DSN, DATABASE, drivername=DRIVER)
+    reads_url = build_db_dsn(DB_DSN, DATABASE, use_replica=True, drivername=DRIVER)
     writes = _engine(writes_url)
     reads = _engine(reads_url)
     sessions = sa_async.async_sessionmaker(writes, expire_on_commit=False)

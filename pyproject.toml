@@ -27,7 +27,8 @@ dependencies = [
     # 2.0.20, not 2.0.18: advanced-alchemy requires it, so nothing here can exercise 2.0.18.
     "sqlalchemy[asyncio]>=2.0.20; python_version < '3.13'",
     "sqlalchemy[asyncio]>=2.0.31; python_version >= '3.13'",
-    "asyncpg>=0.28",
+    # 0.32: before it, close() after a command_timeout waits with no bound for a cancel a frozen server never answers.
+    "asyncpg>=0.32",
 ]
 
 [project.urls]
