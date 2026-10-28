@@ -34,8 +34,10 @@ def parse_connect_args(url: sqlalchemy.URL) -> tuple[dict[str, typing.Any], list
     return connect_args, []
 
 
-def build_connection_plan(url: sqlalchemy.URL) -> ConnectionPlan:
+def build_connection_plan(url: sqlalchemy.URL, command_timeout: float | None = None) -> ConnectionPlan:
     connect_args, hosts_and_ports = parse_connect_args(url)
+    if command_timeout is not None:
+        connect_args.setdefault("command_timeout", command_timeout)
     raw_target_session_attrs: str | None = connect_args.pop("target_session_attrs", None)
     target_session_attrs: SessionAttribute | None = (
         SessionAttribute(raw_target_session_attrs) if raw_target_session_attrs else None
@@ -69,8 +71,10 @@ def _shuffled(failover: tuple[tuple[str, int], ...]) -> list[tuple[str, int]]:
 def build_connection_factory(
     url: sqlalchemy.URL,
     timeout: float,
+    *,
+    command_timeout: float | None = None,
 ) -> typing.Callable[[], typing.Awaitable["ConnectionType"]]:
-    plan: typing.Final = build_connection_plan(url)
+    plan: typing.Final = build_connection_plan(url, command_timeout)
 
     async def _connection_factory() -> "ConnectionType":
         if not plan.failover:
