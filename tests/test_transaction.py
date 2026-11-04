@@ -1,4 +1,5 @@
 import contextlib
+import types
 import typing
 
 import pytest
@@ -120,3 +121,38 @@ async def test_entering_rolls_back_a_transaction_whose_flush_lost_the_connection
     assert not transaction.session.is_active
     async with transaction:
         assert await transaction.session.scalar(sqlalchemy.text("SELECT 1")) == 1
+
+
+@pytest.mark.parametrize("accessor", ["native", "public", "legacy"])
+@pytest.mark.parametrize("savepoint", [False, True])
+async def test_entering_recovers_an_invalidated_second_bind(
+    async_engine: sa_async.AsyncEngine, monkeypatch: pytest.MonkeyPatch, accessor: str, savepoint: bool
+) -> None:
+    other_engine: typing.Final = sa_async.create_async_engine(async_engine.url)
+    try:
+        async with sa_async.AsyncSession(async_engine) as session:
+            await session.connection()
+            other_connection = await session.connection(bind_arguments={"bind": other_engine.sync_engine})
+            await other_connection.invalidate()
+            root = session.sync_session.get_transaction()
+            assert root is not None
+            assert root.is_active
+            if savepoint:
+                await session.begin_nested()
+            with monkeypatch.context() as patch:
+                if accessor == "public":
+                    public_transaction = types.SimpleNamespace(
+                        is_active=True, connections=frozenset([other_connection.sync_connection])
+                    )
+                    patch.setattr(session.sync_session, "get_transaction", lambda: public_transaction)
+                elif accessor == "legacy":
+                    patch.delattr(orm.SessionTransaction, "connections", raising=False)
+                async with Transaction(session=session):
+                    assert (
+                        await session.scalar(
+                            sqlalchemy.text("SELECT 1"), bind_arguments={"bind": other_engine.sync_engine}
+                        )
+                        == 1
+                    )
+    finally:
+        await other_engine.dispose()
