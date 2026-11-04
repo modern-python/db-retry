@@ -11,7 +11,9 @@ def _is_dead(session: sa_async.AsyncSession) -> bool:
         return False
     if not transaction.is_active:
         return True
-    # SQLAlchemy has no public accessor for the connections a transaction already holds.
+    connections: typing.Final = getattr(transaction, "connections", None)
+    if connections is not None:
+        return any(connection.invalidated for connection in connections)
     held: typing.Final = getattr(transaction, "_connections", {})
     return any(connection.invalidated for connection, *_ in held.values())
 
