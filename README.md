@@ -228,6 +228,8 @@ export DB_RETRY_RETRIES_NUMBER=5
 - [PyPI](https://pypi.org/project/db-retry)
 - [License](https://github.com/modern-python/db-retry/blob/main/LICENSE)
 
+If this project saves you time, consider giving it a star on GitHub.
+
 ## Part of `modern-python`
 
 Browse the full list of templates and libraries in
